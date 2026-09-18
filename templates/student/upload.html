@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload Achievement - Student Portal{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <a href="{{ url_for('student_dashboard') }}" class="btn btn-outline-secondary btn-sm rounded-pill">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+                </a>
+                <span class="badge bg-primary bg-opacity-10 text-primary">Verification Required</span>
+            </div>
+
+            <div class="card-custom p-4 p-md-5 bg-white mb-4 shadow-sm">
+                <div class="text-center mb-4">
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-3 d-inline-flex align-items-center justify-content-center mb-2" style="width: 54px; height: 54px;">
+                        <i class="bi bi-cloud-arrow-up-fill fs-4"></i>
+                    </div>
+                    <h3 class="fw-bold text-dark">Submit New Achievement</h3>
+                    <p class="text-muted small">Fill in the details below and attach your original certificate for faculty approval.</p>
+                </div>
+
+                <form method="POST" action="{{ url_for('upload_certificate') }}" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-dark">Achievement / Certificate Title *</label>
+                        <input type="text" name="title" class="form-control form-control-lg fs-6" placeholder="e.g. 1st Place - Smart India Hackathon 2026" required>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark">Category *</label>
+                            <select name="category_id" class="form-select" required>
+                                <option value="">Select Category</option>
+                                {% for cat in global_categories %}
+                                    <option value="{{ cat.id }}">{{ cat.name }} (+{{ cat.points_weight }} pts)</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark">Issuing Organization / Authority *</label>
+                            <input type="text" name="issuing_org" class="form-control" placeholder="e.g. AICTE, IEEE, Amazon Web Services" required>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark">Date Issued *</label>
+                            <input type="date" name="issue_date" class="form-control" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark">Credential ID / Certificate No. (Optional)</label>
+                            <input type="text" name="credential_id" class="form-control" placeholder="e.g. AWS-SAA-90182">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-dark">Online Verification Link (Optional)</label>
+                        <input type="url" name="credential_url" class="form-control" placeholder="https://www.credly.com/badges/...">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-dark">Description / Details of Contribution</label>
+                        <textarea name="description" class="form-control" rows="3" placeholder="Briefly describe what you accomplished, your role, technologies used, or rank achieved..."></textarea>
+                    </div>
+
+                    <!-- File Upload Box -->
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-dark">Certificate Document / Proof *</label>
+                        <div class="border border-2 border-dashed rounded-3 p-4 text-center bg-light">
+                            <i class="bi bi-file-earmark-arrow-up text-primary display-6 mb-2"></i>
+                            <div class="fw-semibold text-dark">Choose certificate file to upload</div>
+                            <div class="small text-muted mb-3">Supported formats: PDF, PNG, JPG, JPEG, WEBP (Max 16 MB)</div>
+                            <input type="file" name="file" id="certFileInput" class="form-control w-75 mx-auto" accept=".pdf,.png,.jpg,.jpeg,.webp" required>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('student_dashboard') }}" class="btn btn-outline-secondary rounded-pill px-4">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold shadow-sm">
+                            Submit for Verification <i class="bi bi-send-fill ms-1"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

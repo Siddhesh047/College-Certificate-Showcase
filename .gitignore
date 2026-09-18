@@ -1,0 +1,32 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+env*/
+
+# Environment variables
+.env
+.env.*
+
+# Local databases (re-created with `python seed_data.py`)
+instance/
+*.db
+*.sqlite3
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+.gemini/
+
+# Testing & Cache
+.pytest_cache/
+.coverage
+htmlcov/

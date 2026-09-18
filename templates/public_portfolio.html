@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ student.name }} - Verified Portfolio{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Student Header Banner Card -->
+    <div class="card-custom p-4 p-md-5 mb-4 bg-white position-relative overflow-hidden">
+        <div class="position-absolute top-0 end-0 p-3">
+            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2 rounded-pill">
+                <i class="bi bi-shield-fill-check me-1"></i> Digitally Verified Portfolio
+            </span>
+        </div>
+
+        <div class="row align-items-center gy-4">
+            <div class="col-md-auto text-center">
+                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold display-5 mx-auto shadow-sm" style="width: 100px; height: 100px;">
+                    {{ student.name[:1] }}
+                </div>
+            </div>
+            <div class="col-md">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                    <h2 class="fw-bold text-dark mb-0">{{ student.name }}</h2>
+                    {% if student.student_id_no %}
+                    <span class="badge bg-light text-secondary border font-monospace">{{ student.student_id_no }}</span>
+                    {% endif %}
+                </div>
+                <p class="text-muted mb-2 fs-6">
+                    <i class="bi bi-mortarboard me-1 text-primary"></i>{{ student.department }}
+                </p>
+                {% if student.bio %}
+                <p class="text-secondary small mb-3 text-break" style="max-width: 600px;">
+                    {{ student.bio }}
+                </p>
+                {% endif %}
+
+                <div class="d-flex flex-wrap gap-2 pt-1">
+                    <span class="badge bg-primary px-3 py-2 fs-6">
+                        <i class="bi bi-stars text-warning me-1"></i> {{ student.total_points }} Points Earned
+                    </span>
+                    <span class="badge bg-light text-dark border px-3 py-2 fs-6">
+                        <i class="bi bi-patch-check-fill text-success me-1"></i> {{ approved_certs|length }} Verified Credentials
+                    </span>
+                </div>
+            </div>
+
+            <div class="col-md-auto text-md-end">
+                <a href="{{ url_for('download_student_portfolio_pdf', student_id=student.id) }}" class="btn btn-danger btn-lg rounded-pill px-4 shadow-sm">
+                    <i class="bi bi-file-earmark-pdf-fill me-2"></i> Download PDF Transcript
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Verified Credentials Section -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="fw-bold text-dark mb-0">
+            <i class="bi bi-award-fill text-primary me-2"></i>Verified Achievements ({{ approved_certs|length }})
+        </h4>
+        <span class="text-muted small">Validated by Institutional Review Committee</span>
+    </div>
+
+    {% if approved_certs %}
+    <div class="row g-4">
+        {% for cert in approved_certs %}
+        <div class="col-lg-6">
+            <div class="card-custom p-4 h-100 d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="badge-category">
+                        <i class="bi {{ cert.category.icon or 'bi-award' }} me-1"></i>{{ cert.category.name }}
+                    </span>
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 small">
+                        +{{ cert.points }} pts
+                    </span>
+                </div>
+
+                <h5 class="fw-bold text-dark mb-1">{{ cert.title }}</h5>
+                <div class="text-muted small mb-2">
+                    <i class="bi bi-building me-1"></i><strong>{{ cert.issuing_org }}</strong> &bull; <i class="bi bi-calendar3 ms-1 me-1"></i>{{ cert.issue_date.strftime('%B %d, %Y') }}
+                </div>
+
+                {% if cert.description %}
+                <p class="text-secondary small mb-3 flex-grow-1">
+                    {{ cert.description }}
+                </p>
+                {% endif %}
+
+                {% if cert.credential_id %}
+                <div class="bg-light p-2 rounded small text-muted font-monospace mb-3">
+                    <i class="bi bi-shield-check me-1 text-success"></i><strong>Credential Ref:</strong> {{ cert.credential_id }}
+                </div>
+                {% endif %}
+
+                <div class="pt-3 border-top d-flex justify-content-between align-items-center mt-auto">
+                    <span class="text-success small fw-semibold">
+                        <i class="bi bi-check-circle-fill me-1"></i>Verified by Faculty
+                    </span>
+                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3"
+                        data-bs-toggle="modal" data-bs-target="#certificatePreviewModal"
+                        data-cert-title="{{ cert.title }}"
+                        data-file-url="{{ url_for('static', filename='uploads/' + cert.file_path) }}"
+                        data-file-type="{{ cert.file_type }}">
+                        <i class="bi bi-eye-fill me-1"></i> View Document
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card-custom p-5 text-center my-4">
+        <i class="bi bi-folder2-open text-muted fs-1 mb-2"></i>
+        <h5 class="fw-bold text-dark">No verified achievements to display</h5>
+        <p class="text-muted small mb-0">This student's submissions are currently under review.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

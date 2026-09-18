@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Create an Account - Celestial Portal{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-7 col-md-9">
+            <div class="card-custom p-4 p-md-5 bg-white shadow-lg border-0">
+                <div class="text-center mb-4">
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-3 d-inline-flex align-items-center justify-content-center mb-3" style="width: 54px; height: 54px;">
+                        <i class="bi bi-person-plus-fill fs-4"></i>
+                    </div>
+                    <h3 class="fw-bold text-dark">Institutional Registration</h3>
+                    <p class="text-muted small">Join the Celestial achievement repository to upload credentials or verify submissions</p>
+                </div>
+
+                <form method="POST" action="{{ url_for('register') }}">
+                    <!-- Role Selection -->
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-muted text-uppercase">Account Type</label>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <input type="radio" class="btn-check" name="role" id="roleStudent" value="student" {{ 'checked' if not role or role == 'student' else '' }}>
+                                <label class="btn btn-outline-primary w-100 py-2 d-flex align-items-center justify-content-center gap-2" for="roleStudent">
+                                    <i class="bi bi-mortarboard fs-5"></i> Student
+                                </label>
+                            </div>
+                            <div class="col-6">
+                                <input type="radio" class="btn-check" name="role" id="roleFaculty" value="faculty" {{ 'checked' if role == 'faculty' else '' }}>
+                                <label class="btn btn-outline-primary w-100 py-2 d-flex align-items-center justify-content-center gap-2" for="roleFaculty">
+                                    <i class="bi bi-person-workspace fs-5"></i> Faculty / Staff
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-dark">Full Legal Name *</label>
+                            <input type="text" name="name" value="{{ name or '' }}" class="form-control" placeholder="e.g. Aarav Sharma" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-dark">Institutional Email *</label>
+                            <input type="email" name="email" value="{{ email or '' }}" class="form-control" placeholder="e.g. aarav@student.edu" required>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-dark">Department / Faculty *</label>
+                            <select name="department" class="form-select" required>
+                                <option value="">Select Academic Department</option>
+                                {% for dept in all_departments %}
+                                    <option value="{{ dept }}" {{ 'selected' if department == dept }}>{{ dept }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-dark">Student ID / Roll No</label>
+                            <input type="text" name="student_id_no" class="form-control" placeholder="e.g. CS2023-010 (if student)">
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-dark">Create Password *</label>
+                            <input type="password" name="password" class="form-control" placeholder="Minimum 6 characters" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-dark">Confirm Password *</label>
+                            <input type="password" name="confirm_password" class="form-control" placeholder="Repeat password" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold text-dark">Short Bio / Profile Summary (Optional)</label>
+                        <textarea name="bio" class="form-control" rows="2" placeholder="Tell us about your academic interests, focus areas, or team involvements..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2 rounded-pill fw-semibold shadow-sm">
+                        Create Account <i class="bi bi-arrow-right ms-1"></i>
+                    </button>
+                </form>
+
+                <div class="text-center mt-4 pt-3 border-top">
+                    <span class="text-muted small">Already registered?</span>
+                    <a href="{{ url_for('login') }}" class="small fw-bold text-decoration-none ms-1">Sign In to Existing Account</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,246 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - Central Student Achievement Portal{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-banner mb-5">
+    <div class="container py-3">
+        <div class="row align-items-center gy-4">
+            <div class="col-lg-7">
+                <span class="badge bg-primary bg-opacity-25 text-info border border-info border-opacity-25 px-3 py-2 rounded-pill mb-3">
+                    <i class="bi bi-patch-check-fill me-1"></i> Autonomous Institutional Achievement System
+                </span>
+                <h1 class="display-5 fw-bold text-white mb-3 lh-sm">
+                    Showcase Your Honors.<br>
+                    <span class="text-info">Empower Your College Portfolio.</span>
+                </h1>
+                <p class="lead text-light text-opacity-75 mb-4 pe-lg-4">
+                    A unified digital ecosystem for students to upload hackathons, research publications, internships, and sporting achievements — officially verified by faculty with a gamified campus leaderboard.
+                </p>
+                <div class="d-flex flex-wrap gap-3">
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.is_student %}
+                            <a href="{{ url_for('upload_certificate') }}" class="btn btn-info btn-lg px-4 py-2 rounded-pill fw-semibold text-dark shadow-sm">
+                                <i class="bi bi-cloud-arrow-up-fill me-2"></i> Upload Achievement
+                            </a>
+                            <a href="{{ url_for('student_dashboard') }}" class="btn btn-outline-light btn-lg px-4 py-2 rounded-pill">
+                                <i class="bi bi-speedometer2 me-2"></i> My Dashboard
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-info btn-lg px-4 py-2 rounded-pill fw-semibold text-dark shadow-sm">
+                                <i class="bi bi-shield-check me-2"></i> Review Queue ({{ total_pending }})
+                            </a>
+                            <a href="{{ url_for('analytics') }}" class="btn btn-outline-light btn-lg px-4 py-2 rounded-pill">
+                                <i class="bi bi-bar-chart-fill me-2"></i> View Analytics
+                            </a>
+                        {% endif %}
+                    {% else %}
+                        <a href="{{ url_for('register') }}" class="btn btn-info btn-lg px-4 py-2 rounded-pill fw-semibold text-dark shadow-sm">
+                            <i class="bi bi-person-plus-fill me-2"></i> Student Sign Up
+                        </a>
+                        <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-lg px-4 py-2 rounded-pill">
+                            <i class="bi bi-box-arrow-in-right me-2"></i> Portal Login
+                        </a>
+                    {% endif %}
+                    <a href="{{ url_for('showcase') }}" class="btn btn-link text-white-50 text-decoration-none d-flex align-items-center gap-1">
+                        Explore Showcase <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="card bg-dark bg-opacity-50 border border-white border-opacity-10 rounded-4 p-4 shadow-lg backdrop-blur">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h6 class="text-white-50 text-uppercase tracking-wide mb-0 small">Campus Leaderboard Snapshot</h6>
+                        <span class="badge bg-warning text-dark"><i class="bi bi-award-fill me-1"></i> Top Achievers</span>
+                    </div>
+
+                    <div class="vstack gap-3">
+                        {% for student in top_students %}
+                        <div class="d-flex align-items-center justify-content-between p-3 rounded-3 bg-white bg-opacity-10 border border-white border-opacity-10">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="badge rounded-circle p-2 {{ 'bg-warning text-dark' if loop.index == 1 else ('bg-secondary text-white' if loop.index == 2 else 'bg-danger text-white') }}" style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; font-weight: bold;">
+                                    #{{ loop.index }}
+                                </div>
+                                <div>
+                                    <div class="text-white fw-bold">{{ student.name }}</div>
+                                    <div class="text-white-50 small">{{ student.department }}</div>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-success fs-6">{{ student.total_points }} pts</span>
+                                <div class="text-white-50 small" style="font-size: 0.75rem;">{{ student.approved_certificates|length }} verified</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <a href="{{ url_for('leaderboard') }}" class="btn btn-sm btn-outline-info rounded-pill mt-3 w-100">
+                        View Full College Leaderboard <i class="bi bi-chevron-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="container mb-5">
+    <!-- Live Metric Counters -->
+    <div class="row g-3 mb-5">
+        <div class="col-md-3 col-6">
+            <div class="stat-card stat-green p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Verified Records</div>
+                        <div class="fs-2 fw-bold text-dark mt-1">{{ total_approved }}</div>
+                    </div>
+                    <div class="bg-success bg-opacity-10 text-success rounded-3 p-3">
+                        <i class="bi bi-patch-check-fill fs-3"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="stat-card stat-blue p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Active Students</div>
+                        <div class="fs-2 fw-bold text-dark mt-1">{{ total_students }}</div>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-3">
+                        <i class="bi bi-people-fill fs-3"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="stat-card stat-amber p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Pending Review</div>
+                        <div class="fs-2 fw-bold text-dark mt-1">{{ total_pending }}</div>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 text-warning rounded-3 p-3">
+                        <i class="bi bi-hourglass-split fs-3"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="stat-card stat-purple p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Categories</div>
+                        <div class="fs-2 fw-bold text-dark mt-1">{{ total_categories }}</div>
+                    </div>
+                    <div class="bg-info bg-opacity-10 text-info rounded-3 p-3">
+                        <i class="bi bi-tags-fill fs-3"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Platform Highlights & Workflow -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="card-custom p-4 h-100">
+                <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-3 d-inline-block mb-3">
+                    <i class="bi bi-cloud-upload-fill fs-3"></i>
+                </div>
+                <h5 class="fw-bold">1. Student Upload</h5>
+                <p class="text-muted small mb-0">
+                    Students upload certificates (PDF or high-res images) from hackathons, internships, sports, research publications, and courses.
+                </p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card-custom p-4 h-100">
+                <div class="bg-success bg-opacity-10 text-success rounded-3 p-3 d-inline-block mb-3">
+                    <i class="bi bi-shield-check fs-3"></i>
+                </div>
+                <h5 class="fw-bold">2. Faculty Verification</h5>
+                <p class="text-muted small mb-0">
+                    Department faculty inspect the original document in-browser and approve with one click or reject with actionable feedback remarks.
+                </p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card-custom p-4 h-100">
+                <div class="bg-warning bg-opacity-10 text-warning rounded-3 p-3 d-inline-block mb-3">
+                    <i class="bi bi-file-earmark-pdf-fill fs-3"></i>
+                </div>
+                <h5 class="fw-bold">3. Portfolio & Leaderboard</h5>
+                <p class="text-muted small mb-0">
+                    Instant points calculation, dynamic campus rankings, and single-click export of an accredited, verified PDF achievement transcript.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Verified Showcase Wall Highlights -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-1">Recent Campus Achievements</h3>
+            <p class="text-muted small mb-0">Browse recent credentials verified by college faculty</p>
+        </div>
+        <a href="{{ url_for('showcase') }}" class="btn btn-outline-primary rounded-pill btn-sm px-3">
+            View All Achievements <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+    </div>
+
+    <div class="row g-4">
+        {% for cert in recent_achievements %}
+        <div class="col-lg-4 col-md-6">
+            <div class="cert-card">
+                <div class="cert-preview-thumb">
+                    {% if cert.file_type == 'image' %}
+                        <img src="{{ url_for('static', filename='uploads/' + cert.file_path) }}" alt="{{ cert.title }}">
+                    {% else %}
+                        <div class="text-center p-3">
+                            <i class="bi bi-file-earmark-pdf-fill text-danger fs-1"></i>
+                            <div class="small fw-semibold text-muted mt-1">PDF Document</div>
+                        </div>
+                    {% endif %}
+                    <span class="cert-badge-points">
+                        <i class="bi bi-stars text-warning me-1"></i>+{{ cert.points }} pts
+                    </span>
+                </div>
+                <div class="p-4 d-flex flex-column flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge-category">
+                            <i class="bi {{ cert.category.icon or 'bi-award' }} me-1"></i>{{ cert.category.name }}
+                        </span>
+                        <span class="text-muted small">
+                            <i class="bi bi-calendar3 me-1"></i>{{ cert.issue_date.strftime('%b %Y') }}
+                        </span>
+                    </div>
+
+                    <h6 class="fw-bold text-dark mb-2 text-truncate" title="{{ cert.title }}">{{ cert.title }}</h6>
+                    <p class="text-muted small mb-3 text-truncate" title="{{ cert.issuing_org }}">
+                        <i class="bi bi-building me-1"></i>{{ cert.issuing_org }}
+                    </p>
+
+                    <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
+                        <div>
+                            <a href="{{ url_for('public_portfolio', student_id=cert.student.id) }}" class="fw-semibold text-dark text-decoration-none small d-block">
+                                {{ cert.student.name }}
+                            </a>
+                            <span class="text-muted" style="font-size: 0.725rem;">{{ cert.student.department }}</span>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3"
+                            data-bs-toggle="modal" data-bs-target="#certificatePreviewModal"
+                            data-cert-title="{{ cert.title }}"
+                            data-file-url="{{ url_for('static', filename='uploads/' + cert.file_path) }}"
+                            data-file-type="{{ cert.file_type }}">
+                            <i class="bi bi-eye-fill me-1"></i> View
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

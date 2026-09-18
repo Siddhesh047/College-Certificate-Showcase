@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block title %}All Submissions Repository - Admin{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold mb-1 text-dark d-flex align-items-center gap-2">
+                <i class="bi bi-collection-fill text-primary"></i> Institutional Submissions Repository
+            </h2>
+            <p class="text-muted mb-0">Master audit log of all student credentials across departments with verification timestamps</p>
+        </div>
+
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i> Back to Review Queue
+        </a>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar mb-4">
+        <form method="GET" action="{{ url_for('all_submissions') }}" class="row g-3 align-items-center">
+            <div class="col-lg-3 col-md-6">
+                <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="Search title, student, org...">
+            </div>
+            <div class="col-lg-3 col-md-3">
+                <select name="status" class="form-select">
+                    <option value="">All Statuses</option>
+                    <option value="Approved" {{ 'selected' if selected_status == 'Approved' }}>Approved</option>
+                    <option value="Pending" {{ 'selected' if selected_status == 'Pending' }}>Pending</option>
+                    <option value="Rejected" {{ 'selected' if selected_status == 'Rejected' }}>Rejected</option>
+                </select>
+            </div>
+            <div class="col-lg-3 col-md-3">
+                <select name="department" class="form-select">
+                    <option value="">All Departments</option>
+                    {% for dept in all_departments %}
+                        <option value="{{ dept }}" {{ 'selected' if selected_department == dept }}>{{ dept }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-lg-3 col-md-12 d-flex gap-2">
+                <button type="submit" class="btn btn-primary rounded-pill w-100 fw-semibold">
+                    <i class="bi bi-funnel-fill me-1"></i> Filter
+                </button>
+                {% if selected_status or selected_category or selected_department or search_query %}
+                <a href="{{ url_for('all_submissions') }}" class="btn btn-outline-secondary rounded-pill" title="Reset Filters">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Submissions Table -->
+    <div class="card-custom overflow-hidden mb-4">
+        <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+            <div class="fw-bold text-dark">
+                <i class="bi bi-table me-2 text-primary"></i> Submissions Record ({{ submissions|length }} entries)
+            </div>
+        </div>
+
+        {% if submissions %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">ID</th>
+                        <th>Student & Department</th>
+                        <th>Achievement Title & Category</th>
+                        <th>Status</th>
+                        <th>Points</th>
+                        <th>Verified By & Date</th>
+                        <th>Remarks</th>
+                        <th class="text-end pe-4">Proof</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cert in submissions %}
+                    <tr>
+                        <td class="ps-4 font-monospace text-muted small">#{{ cert.id }}</td>
+                        <td>
+                            <div class="fw-bold text-dark">{{ cert.student.name }}</div>
+                            <div class="small text-muted">{{ cert.student.department }}</div>
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-dark text-truncate" style="max-width: 260px;" title="{{ cert.title }}">{{ cert.title }}</div>
+                            <span class="badge-category">{{ cert.category.name }}</span>
+                        </td>
+                        <td>
+                            {% if cert.status == 'Approved' %}
+                                <span class="badge-status badge-approved">Approved</span>
+                            {% elif cert.status == 'Pending' %}
+                                <span class="badge-status badge-pending">Pending</span>
+                            {% else %}
+                                <span class="badge-status badge-rejected">Rejected</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if cert.status == 'Approved' %}
+                                <span class="badge bg-success bg-opacity-10 text-success fw-bold">+{{ cert.points }}</span>
+                            {% else %}
+                                <span class="text-muted small">0</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if cert.verified_by %}
+                                <div class="small text-dark fw-semibold">{{ cert.verified_by.name }}</div>
+                                <div class="small text-muted">{{ cert.verified_at.strftime('%b %d, %Y') if cert.verified_at else '' }}</div>
+                            {% else %}
+                                <span class="text-muted small">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="small text-muted text-truncate" style="max-width: 180px;" title="{{ cert.admin_remarks or '' }}">
+                                {{ cert.admin_remarks or '—' }}
+                            </div>
+                        </td>
+                        <td class="text-end pe-4">
+                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3"
+                                data-bs-toggle="modal" data-bs-target="#certificatePreviewModal"
+                                data-cert-title="{{ cert.title }}"
+                                data-file-url="{{ url_for('static', filename='uploads/' + cert.file_path) }}"
+                                data-file-type="{{ cert.file_type }}">
+                                <i class="bi bi-eye"></i> View
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-5 text-center text-muted">
+            <i class="bi bi-folder-x fs-1 mb-2"></i>
+            <h5 class="fw-bold">No submissions match the filter criteria</h5>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

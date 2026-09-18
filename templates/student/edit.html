@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Submission - Student Portal{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <a href="{{ url_for('student_dashboard') }}" class="btn btn-outline-secondary btn-sm rounded-pill">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+                </a>
+                <span class="badge {{ 'bg-warning text-dark' if cert.status == 'Pending' else 'bg-danger' }}">
+                    Status: {{ cert.status }}
+                </span>
+            </div>
+
+            {% if cert.status == 'Rejected' %}
+            <div class="alert alert-danger shadow-sm border-0 d-flex align-items-start gap-2 mb-4">
+                <i class="bi bi-exclamation-triangle-fill fs-5 mt-1"></i>
+                <div>
+                    <strong>Faculty Feedback:</strong>
+                    <div>{{ cert.admin_remarks or 'Certificate rejected. Please update the details and attach valid proof.' }}</div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="card-custom p-4 p-md-5 bg-white mb-4 shadow-sm">
+                <div class="text-center mb-4">
+                    <h3 class="fw-bold text-dark">Modify Submission</h3>
+                    <p class="text-muted small">Update your certificate details or re-upload a clear copy of your document proof.</p>
+                </div>
+
+                <form method="POST" action="{{ url_for('edit_certificate', cert_id=cert.id) }}" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-dark">Achievement Title *</label>
+                        <input type="text" name="title" value="{{ cert.title }}" class="form-control" required>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark">Category *</label>
+                            <select name="category_id" class="form-select" required>
+                                {% for cat in global_categories %}
+                                    <option value="{{ cat.id }}" {{ 'selected' if cert.category_id == cat.id }}>
+                                        {{ cat.name }} (+{{ cat.points_weight }} pts)
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark">Issuing Organization *</label>
+                            <input type="text" name="issuing_org" value="{{ cert.issuing_org }}" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark">Date Issued *</label>
+                            <input type="date" name="issue_date" value="{{ cert.issue_date.strftime('%Y-%m-%d') }}" class="form-control" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark">Credential ID / Certificate No.</label>
+                            <input type="text" name="credential_id" value="{{ cert.credential_id or '' }}" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-dark">Online Verification Link</label>
+                        <input type="url" name="credential_url" value="{{ cert.credential_url or '' }}" class="form-control">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-dark">Description</label>
+                        <textarea name="description" class="form-control" rows="3">{{ cert.description or '' }}</textarea>
+                    </div>
+
+                    <!-- Existing File & Replace File Box -->
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-dark">Current Attached Proof</label>
+                        <div class="d-flex align-items-center justify-content-between p-2 px-3 bg-light rounded border mb-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-file-earmark-check fs-4 text-primary"></i>
+                                <span class="small font-monospace text-dark">{{ cert.file_path }}</span>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary"
+                                data-bs-toggle="modal" data-bs-target="#certificatePreviewModal"
+                                data-cert-title="{{ cert.title }}"
+                                data-file-url="{{ url_for('static', filename='uploads/' + cert.file_path) }}"
+                                data-file-type="{{ cert.file_type }}">
+                                <i class="bi bi-eye me-1"></i> Preview Current Proof
+                            </button>
+                        </div>
+
+                        <label class="form-label small fw-bold text-dark">Replace Document File (Leave empty to keep current file)</label>
+                        <input type="file" name="file" class="form-control" accept=".pdf,.png,.jpg,.jpeg,.webp">
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('student_dashboard') }}" class="btn btn-outline-secondary rounded-pill px-4">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold">
+                            Save Changes & Resubmit <i class="bi bi-check-circle-fill ms-1"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

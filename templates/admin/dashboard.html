@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+
+{% block title %}Faculty Verification Queue - Admin Hub{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <span class="badge bg-info bg-opacity-10 text-dark mb-1">Faculty & Admin Operations</span>
+            <h2 class="fw-bold mb-1 text-dark d-flex align-items-center gap-2">
+                <i class="bi bi-shield-check text-primary"></i> Verification & Review Queue
+            </h2>
+            <p class="text-muted mb-0">Review student achievement uploads, validate documentation, and assign credential points</p>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ url_for('all_submissions') }}" class="btn btn-outline-secondary rounded-pill px-3">
+                <i class="bi bi-collection me-1"></i> Full Audit Repository
+            </a>
+            <a href="{{ url_for('analytics') }}" class="btn btn-outline-primary rounded-pill px-3">
+                <i class="bi bi-bar-chart me-1"></i> View Analytics
+            </a>
+            <a href="{{ url_for('manage_categories') }}" class="btn btn-outline-dark rounded-pill px-3">
+                <i class="bi bi-tags me-1"></i> Manage Points
+            </a>
+        </div>
+    </div>
+
+    <!-- Metric Counters -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-3 col-sm-6">
+            <div class="stat-card stat-amber p-3 h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Pending Approval</div>
+                        <div class="fs-3 fw-bold text-warning mt-1">{{ total_pending }}</div>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 text-warning rounded-3 p-3">
+                        <i class="bi bi-hourglass-split fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-sm-6">
+            <div class="stat-card stat-green p-3 h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Total Approved</div>
+                        <div class="fs-3 fw-bold text-success mt-1">{{ total_approved }}</div>
+                    </div>
+                    <div class="bg-success bg-opacity-10 text-success rounded-3 p-3">
+                        <i class="bi bi-patch-check-fill fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-sm-6">
+            <div class="stat-card stat-red p-3 h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Total Rejected</div>
+                        <div class="fs-3 fw-bold text-danger mt-1">{{ total_rejected }}</div>
+                    </div>
+                    <div class="bg-danger bg-opacity-10 text-danger rounded-3 p-3">
+                        <i class="bi bi-x-octagon-fill fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-sm-6">
+            <div class="stat-card stat-blue p-3 h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Registered Students</div>
+                        <div class="fs-3 fw-bold text-primary mt-1">{{ total_students }}</div>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-3">
+                        <i class="bi bi-people-fill fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar mb-4">
+        <form method="GET" action="{{ url_for('admin_dashboard') }}" class="row g-3 align-items-center">
+            <div class="col-lg-4 col-md-5">
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="Search by student, roll no, or title...">
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-3">
+                <select name="department" class="form-select">
+                    <option value="">All Departments</option>
+                    {% for dept in all_departments %}
+                        <option value="{{ dept }}" {{ 'selected' if selected_department == dept }}>{{ dept }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-lg-3 col-md-4">
+                <select name="category" class="form-select">
+                    <option value="">All Categories</option>
+                    {% for cat in global_categories %}
+                        <option value="{{ cat.id }}" {{ 'selected' if selected_category == cat.id }}>{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-12 d-flex gap-2">
+                <button type="submit" class="btn btn-primary rounded-pill w-100 fw-semibold">
+                    <i class="bi bi-funnel-fill me-1"></i> Filter
+                </button>
+                {% if selected_category or selected_department or search_query %}
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary rounded-pill" title="Reset Filters">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Pending Submissions Queue -->
+    <div class="card-custom overflow-hidden mb-4">
+        <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+            <div class="fw-bold text-dark">
+                <i class="bi bi-hourglass-top me-2 text-warning"></i> Pending Verification Items ({{ pending_submissions|length }})
+            </div>
+            <span class="badge bg-warning text-dark">Action Required</span>
+        </div>
+
+        {% if pending_submissions %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Student</th>
+                        <th>Department</th>
+                        <th>Achievement Title & Category</th>
+                        <th>Issuing Body & Date</th>
+                        <th>Proof Document</th>
+                        <th class="text-end pe-4">Verification Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cert in pending_submissions %}
+                    <tr>
+                        <td class="ps-4">
+                            <div class="fw-bold text-dark">{{ cert.student.name }}</div>
+                            <div class="small text-muted font-monospace">{{ cert.student.student_id_no or 'ID: N/A' }}</div>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border">{{ cert.student.department }}</span>
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-dark text-truncate" style="max-width: 250px;" title="{{ cert.title }}">{{ cert.title }}</div>
+                            <span class="badge-category">
+                                <i class="bi {{ cert.category.icon or 'bi-award' }} me-1"></i>{{ cert.category.name }} (+{{ cert.category.points_weight }} pts)
+                            </span>
+                        </td>
+                        <td>
+                            <div class="small text-dark fw-semibold">{{ cert.issuing_org }}</div>
+                            <div class="small text-muted">{{ cert.issue_date.strftime('%b %d, %Y') }}</div>
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3"
+                                data-bs-toggle="modal" data-bs-target="#certificatePreviewModal"
+                                data-cert-title="{{ cert.title }}"
+                                data-file-url="{{ url_for('static', filename='uploads/' + cert.file_path) }}"
+                                data-file-type="{{ cert.file_type }}">
+                                <i class="bi bi-file-earmark-text me-1"></i> View Proof
+                            </button>
+                        </td>
+                        <td class="text-end pe-4">
+                            <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm fw-semibold"
+                                data-bs-toggle="modal" data-bs-target="#verifyActionModal"
+                                data-cert-id="{{ cert.id }}"
+                                data-cert-title="{{ cert.title }}"
+                                data-student-name="{{ cert.student.name }}"
+                                data-cert-category="{{ cert.category.name }} (+{{ cert.category.points_weight }} pts)"
+                                data-file-url="{{ url_for('static', filename='uploads/' + cert.file_path) }}"
+                                data-file-type="{{ cert.file_type }}"
+                                data-remarks="{{ cert.admin_remarks or '' }}">
+                                <i class="bi bi-check-circle me-1"></i> Review & Verify
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-5 text-center">
+            <i class="bi bi-check-circle-fill text-success display-4 mb-3"></i>
+            <h5 class="fw-bold text-dark">Queue is all cleared!</h5>
+            <p class="text-muted small mb-0">There are no pending submissions awaiting review for the selected criteria.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal for Review & Action (Approve / Reject) -->
+<div class="modal fade" id="verifyActionModal" tabindex="-1" aria-labelledby="verifyActionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-dark text-white py-3">
+                <h5 class="modal-title fs-6 d-flex align-items-center gap-2" id="verifyActionModalLabel">
+                    <i class="bi bi-shield-check text-info"></i> Certificate Verification & Accreditation
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <form id="verifyActionForm" method="POST">
+                <div class="modal-body p-4">
+                    <div class="row g-4">
+                        <!-- Left: Document Proof Preview -->
+                        <div class="col-lg-7 border-end">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-bold small text-muted text-uppercase">Original Document Preview</span>
+                                <a href="#" id="verifyModalOpenNewTab" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.75rem;">
+                                    <i class="bi bi-box-arrow-up-right me-1"></i> Open Raw
+                                </a>
+                            </div>
+                            <div id="verifyModalFilePreview" class="bg-light rounded p-2 text-center" style="min-height: 380px;">
+                                <!-- Dynamically populated by main.js -->
+                            </div>
+                        </div>
+
+                        <!-- Right: Review Details & Form -->
+                        <div class="col-lg-5 d-flex flex-column">
+                            <div class="mb-3 p-3 bg-light rounded-3 border">
+                                <div class="small text-muted">Student Applicant:</div>
+                                <h5 class="fw-bold text-dark mb-2" id="verifyModalStudentName">Student Name</h5>
+                                <div class="small text-muted">Title:</div>
+                                <h6 class="fw-bold text-primary mb-2" id="verifyModalCertTitle">Title</h6>
+                                <div class="small text-muted">Category & Point Value:</div>
+                                <span class="badge bg-primary px-2 py-1" id="verifyModalCategory">Category</span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-dark">Faculty Remarks / Verification Notes</label>
+                                <textarea name="remarks" id="verifyModalRemarks" class="form-control" rows="3" placeholder="e.g. Verified via official hackathon portal / Certificate authenticated."></textarea>
+                                <div class="form-text small">Remarks are visible to the student and will appear on their dashboard notification.</div>
+                            </div>
+
+                            <div class="alert alert-info border-0 p-3 small mb-4">
+                                <i class="bi bi-info-circle-fill me-1"></i>
+                                Approving this achievement will immediately credit the category points to the student and reflect on the campus leaderboard.
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="mt-auto d-flex gap-2">
+                                <button type="submit" name="action" value="approve" class="btn btn-success flex-fill py-2 rounded-pill fw-semibold shadow-sm">
+                                    <i class="bi bi-check-circle-fill me-1"></i> Approve & Award Points
+                                </button>
+                                <button type="submit" name="action" value="reject" class="btn btn-outline-danger flex-fill py-2 rounded-pill fw-semibold" onclick="return confirm('Confirm rejecting this submission? Student will receive feedback.');">
+                                    <i class="bi bi-x-circle-fill me-1"></i> Reject
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

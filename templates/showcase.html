@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block title %}Public Showcase Wall - Verified Achievements{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Page Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold mb-1 d-flex align-items-center gap-2">
+                <i class="bi bi-grid-3x3-gap-fill text-primary"></i> Campus Achievement Showcase
+            </h2>
+            <p class="text-muted mb-0">Verified portfolio of student honors, hackathons, publications, and sports excellence</p>
+        </div>
+        <div>
+            <a href="{{ url_for('leaderboard') }}" class="btn btn-warning text-dark fw-semibold rounded-pill px-3 shadow-sm">
+                <i class="bi bi-trophy-fill me-1"></i> Campus Leaderboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter & Search Bar -->
+    <div class="filter-bar mb-4">
+        <form method="GET" action="{{ url_for('showcase') }}" class="row g-3 align-items-center">
+            <div class="col-lg-4 col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="q" value="{{ search_query }}" class="form-control border-start-0 ps-0" placeholder="Search by student, title, org...">
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-3">
+                <select name="department" class="form-select">
+                    <option value="">All Departments</option>
+                    {% for dept in all_departments %}
+                        <option value="{{ dept }}" {{ 'selected' if selected_department == dept }}>{{ dept }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-lg-3 col-md-3">
+                <select name="category" class="form-select">
+                    <option value="">All Categories</option>
+                    {% for cat in global_categories %}
+                        <option value="{{ cat.id }}" {{ 'selected' if selected_category == cat.id }}>{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-12 d-flex gap-2">
+                <button type="submit" class="btn btn-primary rounded-pill w-100 fw-semibold">
+                    <i class="bi bi-funnel-fill me-1"></i> Filter
+                </button>
+                {% if selected_category or selected_department or search_query or selected_year %}
+                <a href="{{ url_for('showcase') }}" class="btn btn-outline-secondary rounded-pill" title="Reset Filters">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                </a>
+                {% endif %}
+            </div>
+        </form>
+
+        <!-- Quick Category Filter Pills -->
+        <div class="d-flex flex-wrap gap-2 mt-3 pt-3 border-top">
+            <span class="small text-muted align-self-center me-1">Quick Select:</span>
+            <a href="{{ url_for('showcase') }}" class="badge rounded-pill text-decoration-none px-3 py-2 {{ 'bg-dark text-white' if not selected_category else 'bg-light text-dark border' }}">
+                All ({{ certificates|length }})
+            </a>
+            {% for cat in global_categories %}
+            <a href="{{ url_for('showcase', category=cat.id, department=selected_department) }}" class="badge rounded-pill text-decoration-none px-3 py-2 {{ 'bg-primary text-white' if selected_category == cat.id else 'bg-light text-dark border' }}">
+                <i class="bi {{ cat.icon or 'bi-tag' }} me-1"></i>{{ cat.name }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Achievement Grid -->
+    {% if certificates %}
+    <div class="row g-4">
+        {% for cert in certificates %}
+        <div class="col-lg-4 col-md-6">
+            <div class="cert-card">
+                <!-- Preview Thumbnail -->
+                <div class="cert-preview-thumb position-relative">
+                    {% if cert.file_type == 'image' %}
+                        <img src="{{ url_for('static', filename='uploads/' + cert.file_path) }}" alt="{{ cert.title }}">
+                    {% else %}
+                        <div class="text-center p-3">
+                            <i class="bi bi-file-earmark-pdf-fill text-danger fs-1"></i>
+                            <div class="small fw-semibold text-muted mt-1">Official PDF Document</div>
+                        </div>
+                    {% endif %}
+                    <span class="cert-badge-points">
+                        <i class="bi bi-star-fill text-warning me-1"></i>+{{ cert.points }} pts
+                    </span>
+                    <span class="position-absolute bottom-0 start-0 m-2 badge bg-success bg-opacity-90 rounded-pill small">
+                        <i class="bi bi-patch-check-fill me-1"></i>Verified
+                    </span>
+                </div>
+
+                <!-- Body -->
+                <div class="p-4 d-flex flex-column flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge-category">
+                            <i class="bi {{ cert.category.icon or 'bi-award' }} me-1"></i>{{ cert.category.name }}
+                        </span>
+                        <span class="text-muted small">
+                            <i class="bi bi-calendar-event me-1"></i>{{ cert.issue_date.strftime('%d %b %Y') }}
+                        </span>
+                    </div>
+
+                    <h5 class="fw-bold text-dark mb-2 fs-6 lh-base">{{ cert.title }}</h5>
+                    
+                    <p class="text-muted small mb-2">
+                        <i class="bi bi-building me-1 text-secondary"></i><strong>Issued by:</strong> {{ cert.issuing_org }}
+                    </p>
+
+                    {% if cert.description %}
+                    <p class="text-muted small mb-3 text-truncate-2" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                        {{ cert.description }}
+                    </p>
+                    {% endif %}
+
+                    {% if cert.credential_id %}
+                    <div class="small text-muted mb-3 font-monospace bg-light p-1 rounded px-2 text-truncate">
+                        <i class="bi bi-qr-code me-1"></i>ID: {{ cert.credential_id }}
+                    </div>
+                    {% endif %}
+
+                    <!-- Footer: Student Profile & Action -->
+                    <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold small" style="width: 32px; height: 32px;">
+                                {{ cert.student.name[:1] }}
+                            </div>
+                            <div>
+                                <a href="{{ url_for('public_portfolio', student_id=cert.student.id) }}" class="fw-bold text-dark text-decoration-none small d-block">
+                                    {{ cert.student.name }}
+                                </a>
+                                <span class="text-muted" style="font-size: 0.72rem;">{{ cert.student.department }}</span>
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3"
+                            data-bs-toggle="modal" data-bs-target="#certificatePreviewModal"
+                            data-cert-title="{{ cert.title }}"
+                            data-file-url="{{ url_for('static', filename='uploads/' + cert.file_path) }}"
+                            data-file-type="{{ cert.file_type }}">
+                            <i class="bi bi-eye-fill me-1"></i> Inspect
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card-custom p-5 text-center my-4">
+        <div class="text-muted mb-3">
+            <i class="bi bi-search fs-1"></i>
+        </div>
+        <h5 class="fw-bold text-dark">No verified achievements found</h5>
+        <p class="text-muted small">Try adjusting your search query, department, or category filter.</p>
+        <a href="{{ url_for('showcase') }}" class="btn btn-outline-primary rounded-pill btn-sm px-4 align-self-center">
+            Clear Filters
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

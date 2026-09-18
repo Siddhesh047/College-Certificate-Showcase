@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block title %}Institutional Analytics - Admin{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold mb-1 text-dark d-flex align-items-center gap-2">
+                <i class="bi bi-bar-chart-line-fill text-primary"></i> Institutional Achievement Analytics
+            </h2>
+            <p class="text-muted mb-0">Visual intelligence on department performance, category dispersion, and verification metrics</p>
+        </div>
+
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i> Back to Review Queue
+        </a>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+        <!-- Department-wise Achievements (Bar Chart) -->
+        <div class="col-lg-8">
+            <div class="card-custom p-4 bg-white h-100 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-dark mb-0">Department-wise Verified Achievements</h5>
+                    <span class="badge bg-primary bg-opacity-10 text-primary">Verified Only</span>
+                </div>
+                <div style="position: relative; height: 320px;">
+                    <canvas id="departmentChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overall Status Breakdown (Pie/Donut) -->
+        <div class="col-lg-4">
+            <div class="card-custom p-4 bg-white h-100 shadow-sm">
+                <h5 class="fw-bold text-dark mb-3">Submission Verification Status</h5>
+                <div style="position: relative; height: 260px;">
+                    <canvas id="statusChart"></canvas>
+                </div>
+                <div class="text-center small text-muted mt-3">
+                    Ratio of Approved, Pending, and Rejected Submissions
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Distribution (Doughnut) -->
+    <div class="row g-4 mb-5">
+        <div class="col-lg-12">
+            <div class="card-custom p-4 bg-white shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-dark mb-0">Achievement Category Breakdown</h5>
+                    <span class="badge bg-info bg-opacity-10 text-dark">Institutional Taxonomy</span>
+                </div>
+                <div style="position: relative; height: 320px;">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    fetch('/api/analytics-data')
+        .then(res => res.json())
+        .then(data => {
+            // 1. Department Chart
+            const deptCtx = document.getElementById('departmentChart').getContext('2d');
+            new Chart(deptCtx, {
+                type: 'bar',
+                data: {
+                    labels: data.departments.labels,
+                    datasets: [{
+                        label: 'Approved Achievements',
+                        data: data.departments.data,
+                        backgroundColor: '#2563eb',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { precision: 0 }
+                        }
+                    }
+                }
+            });
+
+            // 2. Status Breakdown Chart
+            const statusCtx = document.getElementById('statusChart').getContext('2d');
+            new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.status.labels,
+                    datasets: [{
+                        data: data.status.data,
+                        backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+
+            // 3. Category Breakdown Chart
+            const catCtx = document.getElementById('categoryChart').getContext('2d');
+            new Chart(catCtx, {
+                type: 'bar',
+                data: {
+                    labels: data.categories.labels,
+                    datasets: [{
+                        label: 'Count of Credentials',
+                        data: data.categories.data,
+                        backgroundColor: [
+                            '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'
+                        ],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { precision: 0 }
+                        }
+                    }
+                }
+            });
+        })
+        .catch(err => console.error('Error fetching analytics data:', err));
+});
+</script>
+{% endblock %}

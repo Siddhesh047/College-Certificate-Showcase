@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}Account Profile - {{ current_user.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card-custom p-4 p-md-5 bg-white mb-4">
+                <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
+                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold fs-3" style="width: 64px; height: 64px;">
+                        {{ current_user.name[:1] }}
+                    </div>
+                    <div>
+                        <h4 class="fw-bold text-dark mb-1">{{ current_user.name }}</h4>
+                        <span class="badge {{ 'bg-warning text-dark' if current_user.is_admin else ('bg-info text-dark' if current_user.is_faculty else 'bg-success') }}">
+                            {{ current_user.role.upper() }}
+                        </span>
+                        <span class="text-muted small ms-2">{{ current_user.email }}</span>
+                    </div>
+                </div>
+
+                <form method="POST" action="{{ url_for('profile') }}">
+                    <h5 class="fw-bold text-dark mb-3">Profile Information</h5>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-dark">Full Name</label>
+                            <input type="text" name="name" value="{{ current_user.name }}" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-dark">Institutional Email (Read Only)</label>
+                            <input type="email" value="{{ current_user.email }}" class="form-control bg-light" readonly disabled>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-dark">Department</label>
+                            <select name="department" class="form-select" required>
+                                {% for dept in all_departments %}
+                                    <option value="{{ dept }}" {{ 'selected' if current_user.department == dept }}>{{ dept }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% if current_user.is_student %}
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-dark">Student ID / Roll No</label>
+                            <input type="text" name="student_id_no" value="{{ current_user.student_id_no or '' }}" class="form-control">
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold text-dark">Bio / Summary</label>
+                        <textarea name="bio" class="form-control" rows="3">{{ current_user.bio or '' }}</textarea>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <h5 class="fw-bold text-dark mb-3">Security & Password (Optional)</h5>
+                    <p class="text-muted small">Leave blank if you do not want to modify your password.</p>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-dark">Current Password</label>
+                            <input type="password" name="current_password" class="form-control" placeholder="Enter current password">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-dark">New Password</label>
+                            <input type="password" name="new_password" class="form-control" placeholder="Minimum 6 characters">
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('student_dashboard' if current_user.is_student else 'admin_dashboard') }}" class="btn btn-outline-secondary rounded-pill px-4">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold">
+                            Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
