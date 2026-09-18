@@ -5,7 +5,7 @@ from functools import wraps
 
 from flask import (
     Flask, render_template, request, redirect, url_for, flash, 
-    jsonify, send_file, abort
+    jsonify, send_file, abort, send_from_directory
 )
 from flask_login import (
     LoginManager, login_user, logout_user, login_required, current_user
@@ -19,18 +19,47 @@ from pdf_generator import generate_portfolio_pdf
 # Initialize Flask App
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'celestial-super-secret-key-2026-hackathon')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///database.db')
+
+IS_VERCEL = os.environ.get('VERCEL') == '1' or 'VERCEL' in os.environ
+
+database_url = os.environ.get('DATABASE_URL')
+if database_url:
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+elif IS_VERCEL:
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/database.db'
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-UPLOAD_FOLDER = os.path.join(app.root_path, 'static', 'uploads')
+if IS_VERCEL:
+    UPLOAD_FOLDER = '/tmp/uploads'
+else:
+    UPLOAD_FOLDER = os.path.join(app.root_path, 'static', 'uploads')
+
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max limit
 ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg', 'webp'}
 
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+try:
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+except Exception:
+    pass
 
 # Initialize Extensions
 db.init_app(app)
+
+# Auto-initialize database tables & seed on cold start if empty
+with app.app_context():
+    try:
+        db.create_all()
+        if Category.query.count() == 0:
+            from seed_data import seed_database
+            seed_database(app)
+    except Exception as e:
+        print(f"Auto-init / seed notice: {e}")
 login_manager = LoginManager()
 login_manager.login_view = 'login'
 login_manager.login_message = 'Please log in to access this page.'
@@ -91,6 +120,22 @@ def inject_global_vars():
         all_departments=DEPARTMENTS,
         now=datetime.now(timezone.utc)
     )
+
+
+# ==========================================
+# FILE SERVING (Supports Vercel ephemeral storage)
+# ==========================================
+
+@app.route('/static/uploads/<path:filename>')
+def serve_uploaded_file(filename):
+    # 1. Check current configured upload folder (/tmp/uploads on Vercel)
+    if os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], filename)):
+        return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    # 2. Fallback to repository static/uploads directory
+    default_dir = os.path.join(app.root_path, 'static', 'uploads')
+    if os.path.exists(os.path.join(default_dir, filename)):
+        return send_from_directory(default_dir, filename)
+    abort(404)
 
 
 # ==========================================
