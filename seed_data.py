@@ -9,66 +9,69 @@ from reportlab.lib import colors
 from PIL import Image, ImageDraw, ImageFont
 
 def create_sample_files(upload_dir):
-    os.makedirs(upload_dir, exist_ok=True)
+    try:
+        os.makedirs(upload_dir, exist_ok=True)
 
-    # 1. Sample PDF Certificate
-    pdf_path = os.path.join(upload_dir, 'sample_hackathon_award.pdf')
-    if not os.path.exists(pdf_path):
-        doc = SimpleDocTemplate(pdf_path, pagesize=letter)
-        styles = getSampleStyleSheet()
-        title_style = ParagraphStyle(
-            'CertTitle',
-            parent=styles['Normal'],
-            fontName='Helvetica-Bold',
-            fontSize=22,
-            leading=26,
-            textColor=colors.HexColor('#1e3a8a'),
-            alignment=1
-        )
-        body_style = ParagraphStyle(
-            'CertBody',
-            parent=styles['Normal'],
-            fontName='Helvetica',
-            fontSize=13,
-            leading=18,
-            alignment=1
-        )
-        story = [
-            Spacer(1, 40),
-            Paragraph("CERTIFICATE OF EXCELLENCE", title_style),
-            Spacer(1, 15),
-            Paragraph("This certificate is proudly awarded to the recipient for outstanding performance in the", body_style),
-            Spacer(1, 10),
-            Paragraph("<b>National Hackathon & Innovation Challenge 2026</b>", ParagraphStyle('Sub', parent=body_style, fontSize=16, textColor=colors.HexColor('#0284c7'))),
-            Spacer(1, 15),
-            Paragraph("Issued with high commendation for technical excellence, team leadership, and innovation.", body_style),
-            Spacer(1, 40),
-            Paragraph("<b>Issuing Authority:</b> Ministry of Education & Tech Guild &bull; <b>Verification ID:</b> NHIC-2026-9921", body_style),
-        ]
-        doc.build(story)
+        # 1. Sample PDF Certificate
+        pdf_path = os.path.join(upload_dir, 'sample_hackathon_award.pdf')
+        if not os.path.exists(pdf_path):
+            doc = SimpleDocTemplate(pdf_path, pagesize=letter)
+            styles = getSampleStyleSheet()
+            title_style = ParagraphStyle(
+                'CertTitle',
+                parent=styles['Normal'],
+                fontName='Helvetica-Bold',
+                fontSize=22,
+                leading=26,
+                textColor=colors.HexColor('#1e3a8a'),
+                alignment=1
+            )
+            body_style = ParagraphStyle(
+                'CertBody',
+                parent=styles['Normal'],
+                fontName='Helvetica',
+                fontSize=13,
+                leading=18,
+                alignment=1
+            )
+            story = [
+                Spacer(1, 40),
+                Paragraph("CERTIFICATE OF EXCELLENCE", title_style),
+                Spacer(1, 15),
+                Paragraph("This certificate is proudly awarded to the recipient for outstanding performance in the", body_style),
+                Spacer(1, 10),
+                Paragraph("<b>National Hackathon & Innovation Challenge 2026</b>", ParagraphStyle('Sub', parent=body_style, fontSize=16, textColor=colors.HexColor('#0284c7'))),
+                Spacer(1, 15),
+                Paragraph("Issued with high commendation for technical excellence, team leadership, and innovation.", body_style),
+                Spacer(1, 40),
+                Paragraph("<b>Issuing Authority:</b> Ministry of Education & Tech Guild &bull; <b>Verification ID:</b> NHIC-2026-9921", body_style),
+            ]
+            doc.build(story)
 
-    # 2. Sample Image Certificate (PNG)
-    img_path = os.path.join(upload_dir, 'sample_certificate_badge.png')
-    if not os.path.exists(img_path):
-        img = Image.new('RGB', (800, 560), color=(245, 247, 250))
-        draw = ImageDraw.Draw(img)
-        # Draw decorative border
-        draw.rectangle([20, 20, 780, 540], outline=(30, 58, 138), width=6)
-        draw.rectangle([28, 28, 772, 532], outline=(2, 132, 199), width=2)
-        # Text
-        draw.text((220, 80), "CERTIFICATE OF ACHIEVEMENT", fill=(30, 58, 138))
-        draw.text((260, 140), "Presented for Distinguished Merit", fill=(71, 85, 105))
-        draw.text((210, 220), "ACADEMIC & CO-CURRICULAR HONORS", fill=(2, 132, 199))
-        draw.text((160, 300), "Demonstrated superior capability and verified completion.", fill=(51, 65, 85))
-        draw.text((100, 440), "Official College Verification System", fill=(100, 116, 139))
-        draw.text((540, 440), "Status: Digitally Authenticated", fill=(22, 163, 74))
-        img.save(img_path)
+        # 2. Sample Image Certificate (PNG)
+        img_path = os.path.join(upload_dir, 'sample_certificate_badge.png')
+        if not os.path.exists(img_path):
+            img = Image.new('RGB', (800, 560), color=(245, 247, 250))
+            draw = ImageDraw.Draw(img)
+            # Draw decorative border
+            draw.rectangle([20, 20, 780, 540], outline=(30, 58, 138), width=6)
+            draw.rectangle([28, 28, 772, 532], outline=(2, 132, 199), width=2)
+            # Text
+            draw.text((220, 80), "CERTIFICATE OF ACHIEVEMENT", fill=(30, 58, 138))
+            draw.text((260, 140), "Presented for Distinguished Merit", fill=(71, 85, 105))
+            draw.text((210, 220), "ACADEMIC & CO-CURRICULAR HONORS", fill=(2, 132, 199))
+            draw.text((160, 300), "Demonstrated superior capability and verified completion.", fill=(51, 65, 85))
+            draw.text((100, 440), "Official College Verification System", fill=(100, 116, 139))
+            draw.text((540, 440), "Status: Digitally Authenticated", fill=(22, 163, 74))
+            img.save(img_path)
+    except Exception as e:
+        print(f"Sample proof creation notice: {e}")
 
 def seed_database(app):
     with app.app_context():
         db.create_all()
 
-        upload_dir = os.path.join(app.static_folder, 'uploads')
+        upload_dir = app.config.get('UPLOAD_FOLDER') or os.path.join(app.root_path, 'static', 'uploads')
         create_sample_files(upload_dir)
 
         # 1. Seed Categories if empty
