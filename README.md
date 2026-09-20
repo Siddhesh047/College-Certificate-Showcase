@@ -3,7 +3,7 @@
 
 A modern web application built with **Flask, SQLite, Bootstrap 5, Vanilla JavaScript, Chart.js, and ReportLab**. The platform allows students to upload their co-curricular and academic honors (hackathons, research publications, internships, sports, cultural feats, certifications), while faculty and administrators verify, remark, score, and showcase them across campus.
 
----
+--- 
 
 ## 🌟 Key Features
 
