@@ -9,7 +9,7 @@
     --border-color: #e2e8f0;
     --text-main: #1e293b;
     --text-muted: #64748b;
-}
+} 
 
 body {
     background-color: var(--bg-body);
