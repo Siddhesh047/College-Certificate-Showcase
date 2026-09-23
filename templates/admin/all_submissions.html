@@ -118,13 +118,30 @@
                             </div>
                         </td>
                         <td class="text-end pe-4">
-                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3"
-                                data-bs-toggle="modal" data-bs-target="#certificatePreviewModal"
-                                data-cert-title="{{ cert.title }}"
-                                data-file-url="{{ url_for('static', filename='uploads/' + cert.file_path) }}"
-                                data-file-type="{{ cert.file_type }}">
-                                <i class="bi bi-eye"></i> View
-                            </button>
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-secondary"
+                                    data-bs-toggle="modal" data-bs-target="#certificatePreviewModal"
+                                    data-cert-title="{{ cert.title }}"
+                                    data-file-url="{{ url_for('static', filename='uploads/' + cert.file_path) }}"
+                                    data-file-type="{{ cert.file_type }}"
+                                    title="View Proof Document">
+                                    <i class="bi bi-eye"></i> View
+                                </button>
+                                {% if cert.status == 'Pending' %}
+                                <button type="button" class="btn btn-primary fw-semibold"
+                                    data-bs-toggle="modal" data-bs-target="#verifyActionModal"
+                                    data-cert-id="{{ cert.id }}"
+                                    data-cert-title="{{ cert.title }}"
+                                    data-student-name="{{ cert.student.name }}"
+                                    data-cert-category="{{ cert.category.name }} (+{{ cert.category.points_weight }} pts)"
+                                    data-file-url="{{ url_for('static', filename='uploads/' + cert.file_path) }}"
+                                    data-file-type="{{ cert.file_type }}"
+                                    data-remarks="{{ cert.admin_remarks or '' }}"
+                                    title="Review & Verify">
+                                    <i class="bi bi-check-circle me-1"></i> Grade
+                                </button>
+                                {% endif %}
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -139,4 +156,71 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Modal for Review & Action (Approve / Reject) -->
+<div class="modal fade" id="verifyActionModal" tabindex="-1" aria-labelledby="verifyActionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-dark text-white py-3">
+                <h5 class="modal-title fs-6 d-flex align-items-center gap-2" id="verifyActionModalLabel">
+                    <i class="bi bi-shield-check text-info"></i> Certificate Verification & Accreditation
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <form id="verifyActionForm" method="POST">
+                <div class="modal-body p-4">
+                    <div class="row g-4">
+                        <!-- Left: Document Proof Preview -->
+                        <div class="col-lg-7 border-end">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-bold small text-muted text-uppercase">Original Document Preview</span>
+                                <a href="#" id="verifyModalOpenNewTab" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.75rem;">
+                                    <i class="bi bi-box-arrow-up-right me-1"></i> Open Raw
+                                </a>
+                            </div>
+                            <div id="verifyModalFilePreview" class="bg-light rounded p-2 text-center" style="min-height: 380px;">
+                                <!-- Dynamically populated by main.js -->
+                            </div>
+                        </div>
+
+                        <!-- Right: Review Details & Form -->
+                        <div class="col-lg-5 d-flex flex-column">
+                            <div class="mb-3 p-3 bg-light rounded-3 border">
+                                <div class="small text-muted">Student Applicant:</div>
+                                <h5 class="fw-bold text-dark mb-2" id="verifyModalStudentName">Student Name</h5>
+                                <div class="small text-muted">Title:</div>
+                                <h6 class="fw-bold text-primary mb-2" id="verifyModalCertTitle">Title</h6>
+                                <div class="small text-muted">Category & Point Value:</div>
+                                <span class="badge bg-primary px-2 py-1" id="verifyModalCategory">Category</span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-dark">Faculty Remarks / Verification Notes</label>
+                                <textarea name="remarks" id="verifyModalRemarks" class="form-control" rows="3" placeholder="e.g. Verified via official hackathon portal / Certificate authenticated."></textarea>
+                                <div class="form-text small">Remarks are visible to the student and will appear on their dashboard notification.</div>
+                            </div>
+
+                            <div class="alert alert-info border-0 p-3 small mb-4">
+                                <i class="bi bi-info-circle-fill me-1"></i>
+                                Approving this achievement will immediately credit category points to the student and reflect across the institution.
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="mt-auto d-flex gap-2">
+                                <button type="submit" name="action" value="approve" class="btn btn-success flex-fill py-2 rounded-pill fw-semibold shadow-sm">
+                                    <i class="bi bi-check-circle-fill me-1"></i> Approve & Award Points
+                                </button>
+                                <button type="submit" name="action" value="reject" class="btn btn-outline-danger flex-fill py-2 rounded-pill fw-semibold" onclick="return confirm('Confirm rejecting this submission? Student will receive feedback.');">
+                                    <i class="bi bi-x-circle-fill me-1"></i> Reject
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
+

@@ -305,11 +305,18 @@ def public_portfolio(student_id):
     approved_certs = Certificate.query.filter_by(student_id=student.id, status='Approved')\
         .order_by(Certificate.issue_date.desc()).all()
 
+    pending_certs = []
+    if current_user.is_authenticated and (current_user.is_faculty or current_user.id == student.id):
+        pending_certs = Certificate.query.filter_by(student_id=student.id, status='Pending')\
+            .order_by(Certificate.created_at.desc()).all()
+
     return render_template(
         'public_portfolio.html',
         student=student,
-        approved_certs=approved_certs
+        approved_certs=approved_certs,
+        pending_certs=pending_certs
     )
+
 
 
 @app.route('/portfolio/<int:student_id>/download-pdf')
@@ -709,7 +716,7 @@ def admin_dashboard():
             (User.student_id_no.ilike(f'%{search_query}%'))
         )
 
-    pending_submissions = query.order_by(Certificate.created_at.asc()).all()
+    pending_submissions = query.order_by(Certificate.created_at.desc()).all()
 
     # Metrics
     total_pending = Certificate.query.filter_by(status='Pending').count()
