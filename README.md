@@ -3,7 +3,7 @@
 
 A modern web application built with **Flask, SQLite, Bootstrap 5, Vanilla JavaScript, Chart.js, and ReportLab**. The platform allows students to upload their co-curricular and academic honors (hackathons, research publications, internships, sports, cultural feats, certifications), while faculty and administrators verify, remark, score, and showcase them across campus.
 
---- 
+---
 
 ## 🌟 Key Features
 
@@ -126,14 +126,33 @@ Open your browser and navigate to: **`http://127.0.0.1:5000`**
 
 ---
 
-## 🔄 Production Readiness: Switching to MySQL
-To transition from SQLite to MySQL in a production deployment:
-1. Install the MySQL driver:
-   ```bash
-   pip install pymysql cryptography
-   ```
-2. Set the `DATABASE_URL` environment variable:
-   ```bash
-   export DATABASE_URL="mysql+pymysql://user:password@host:3306/celestial_db"
-   ```
-   No changes to model code or SQL queries are required thanks to the SQLAlchemy ORM abstraction!
+## 🔄 Cloud & Production Deployment: Persistent Database & Storage
+
+In serverless deployment environments (such as Vercel, AWS Lambda, or Render free containers), the local disk (`/tmp`) is ephemeral and resets upon cold starts. 
+
+To ensure **100% data persistence** (so created user accounts and submissions never vanish on cold start):
+
+### 1. Connect a Free Cloud Database (PostgreSQL / MySQL)
+Set the `DATABASE_URL` environment variable in your `.env` or deployment dashboard (e.g. Vercel Project Settings > Environment Variables):
+
+- **Neon Serverless PostgreSQL (Recommended - Free & Instant)**:
+  1. Create a free database at [neon.tech](https://neon.tech).
+  2. Copy the connection string and set:
+     ```bash
+     DATABASE_URL="postgresql://user:password@ep-xyz.us-east-2.aws.neon.tech/neondb?sslmode=require"
+     ```
+- **Supabase PostgreSQL**:
+  ```bash
+  DATABASE_URL="postgresql://postgres:password@db.xyz.supabase.co:5432/postgres"
+  ```
+- **MySQL / PlanetScale**:
+  ```bash
+  DATABASE_URL="mysql+pymysql://user:password@host:3306/celestial_db"
+  ```
+
+The platform includes pre-configured `psycopg2-binary` and `pymysql` drivers with automatic connection pooling (`pool_pre_ping=True`) for seamless serverless resilience!
+
+### 2. Zero-Loss Document Storage
+- Uploaded certificate documents (PDFs and images) are automatically stored directly within the database (`file_data` BLOB column) in addition to disk caching.
+- This ensures files are permanently retained and instantly accessible across serverless cold starts and multi-worker clusters with zero extra S3/Cloudinary configuration required.
+

@@ -98,6 +98,7 @@ class Certificate(db.Model):
     
     file_path = db.Column(db.String(255), nullable=False)  # filename inside static/uploads/
     file_type = db.Column(db.String(10), nullable=False)    # 'pdf', 'image'
+    file_data = db.Column(db.LargeBinary, nullable=True)   # Binary content for persistent serverless/cloud storage
     description = db.Column(db.Text, nullable=True)
     
     status = db.Column(db.String(20), nullable=False, default='Pending')  # 'Pending', 'Approved', 'Rejected'

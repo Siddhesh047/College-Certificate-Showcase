@@ -412,10 +412,16 @@ def seed_database(app):
         ]
 
         if Certificate.query.count() == 0:
+            sample_pdf_path = os.path.join(upload_dir, 'sample_hackathon_award.pdf')
+            sample_img_path = os.path.join(upload_dir, 'sample_certificate_badge.png')
+            sample_pdf_bytes = open(sample_pdf_path, 'rb').read() if os.path.exists(sample_pdf_path) else None
+            sample_img_bytes = open(sample_img_path, 'rb').read() if os.path.exists(sample_img_path) else None
+
             for c_data in certs_to_seed:
                 student_user = created_students.get(c_data["student_email"])
                 category_obj = cats.get(c_data["cat"])
                 if student_user and category_obj:
+                    file_bytes = sample_pdf_bytes if c_data["file_type"] == 'pdf' else sample_img_bytes
                     cert = Certificate(
                         student_id=student_user.id,
                         category_id=category_obj.id,
@@ -425,6 +431,7 @@ def seed_database(app):
                         credential_id=c_data["cred_id"],
                         file_path=c_data["file_path"],
                         file_type=c_data["file_type"],
+                        file_data=file_bytes,
                         description=c_data["desc"],
                         status=c_data["status"],
                         admin_remarks=c_data["remarks"],
@@ -434,6 +441,7 @@ def seed_database(app):
                     db.session.add(cert)
             db.session.commit()
             print("Sample certificates seeded successfully.")
+
 
         # 5. Seed some sample notifications
         if Notification.query.count() == 0:

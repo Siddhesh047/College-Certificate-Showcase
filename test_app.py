@@ -120,5 +120,79 @@ class CelestialAppTestCase(unittest.TestCase):
         self.assertIn('categories', data)
         self.assertIn('status', data)
 
+    def test_account_switching_flow(self):
+        """Test that submitting a login for a different user cleanly switches accounts."""
+        # 1. Log in as Aarav
+        r1 = self.client.post('/login', data={
+            'email': 'aarav@student.edu',
+            'password': 'Student@123'
+        }, follow_redirects=True)
+        self.assertEqual(r1.status_code, 200)
+        dash1 = self.client.get('/dashboard')
+        self.assertIn(b'Aarav Sharma', dash1.data)
+
+        # 2. Directly log in as Priya WITHOUT explicit logout
+        r2 = self.client.post('/login', data={
+            'email': 'priya@student.edu',
+            'password': 'Student@123'
+        }, follow_redirects=True)
+        self.assertEqual(r2.status_code, 200)
+        dash2 = self.client.get('/dashboard')
+        self.assertIn(b'Priya Patel', dash2.data)
+        self.assertNotIn(b'Aarav Sharma', dash2.data)
+
+    def test_database_file_fallback_delivery(self):
+        """Test that uploaded files stored in DB can be served even if deleted from disk."""
+        # 1. Login as student
+        self.client.post('/login', data={
+            'email': 'aarav@student.edu',
+            'password': 'Student@123'
+        })
+
+        with app.app_context():
+            cat = Category.query.first()
+            cat_id = cat.id
+
+        unique_content = b'%PDF-1.4 persistent-db-test-content-unique'
+        fake_pdf = (io.BytesIO(unique_content), 'cold_start_test.pdf')
+        upload_res = self.client.post('/certificate/upload', data={
+            'title': 'Cold Start Resilient Cert',
+            'category_id': cat_id,
+            'issuing_org': 'Resilience Org',
+            'issue_date': '2026-03-10',
+            'description': 'Testing DB BLOB fallback',
+            'file': fake_pdf
+        }, content_type='multipart/form-data', follow_redirects=True)
+        self.assertEqual(upload_res.status_code, 200)
+
+        # Find the newly created certificate's filename
+        with app.app_context():
+            cert = Certificate.query.filter_by(title='Cold Start Resilient Cert').first()
+            self.assertIsNotNone(cert)
+            self.assertIsNotNone(cert.file_data)
+            filename = cert.file_path
+            disk_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+        # 2. Simulate cold-start / serverless worker isolation by deleting disk file
+        if os.path.exists(disk_path):
+            os.remove(disk_path)
+        self.assertFalse(os.path.exists(disk_path))
+
+        # 3. Request the file through the server - should recover from DB!
+        file_res = self.client.get(f'/static/uploads/{filename}')
+        self.assertEqual(file_res.status_code, 200)
+        self.assertEqual(file_res.data, unique_content)
+
+    def test_cache_control_headers(self):
+        """Test that authenticated pages have no-cache headers to prevent cross-account display leakage."""
+        self.client.post('/login', data={
+            'email': 'aarav@student.edu',
+            'password': 'Student@123'
+        })
+        dash = self.client.get('/dashboard')
+        self.assertEqual(dash.status_code, 200)
+        self.assertIn('no-store', dash.headers.get('Cache-Control', ''))
+
 if __name__ == '__main__':
     unittest.main()
+

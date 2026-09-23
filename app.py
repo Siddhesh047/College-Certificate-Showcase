@@ -1,17 +1,25 @@
 import os
+import io
 import uuid
+import mimetypes
 from datetime import datetime, date, timezone
 from functools import wraps
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 from flask import (
     Flask, render_template, request, redirect, url_for, flash, 
-    jsonify, send_file, abort, send_from_directory
+    jsonify, send_file, abort, send_from_directory, session
 )
 from flask_login import (
     LoginManager, login_user, logout_user, login_required, current_user
 )
 from werkzeug.utils import secure_filename
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, inspect, text
 
 from models import db, User, Category, Certificate, Notification
 from pdf_generator import generate_portfolio_pdf
@@ -33,6 +41,10 @@ else:
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_pre_ping': True,
+    'pool_recycle': 300,
+}
 
 if IS_VERCEL:
     UPLOAD_FOLDER = '/tmp/uploads'
@@ -55,11 +67,23 @@ db.init_app(app)
 with app.app_context():
     try:
         db.create_all()
+        # Auto-migration check: ensure file_data exists on existing databases
+        try:
+            inspector = inspect(db.engine)
+            cols = [col['name'] for col in inspector.get_columns('certificates')]
+            if 'file_data' not in cols:
+                with db.engine.connect() as conn:
+                    conn.execute(text("ALTER TABLE certificates ADD COLUMN file_data BLOB;"))
+                    conn.commit()
+        except Exception as mig_err:
+            print(f"Auto-migration check notice: {mig_err}")
+
         if Category.query.count() == 0:
             from seed_data import seed_database
             seed_database(app)
     except Exception as e:
         print(f"Auto-init / seed notice: {e}")
+
 login_manager = LoginManager()
 login_manager.login_view = 'login'
 login_manager.login_message = 'Please log in to access this page.'
@@ -129,13 +153,38 @@ def inject_global_vars():
 @app.route('/static/uploads/<path:filename>')
 def serve_uploaded_file(filename):
     # 1. Check current configured upload folder (/tmp/uploads on Vercel)
-    if os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], filename)):
+    target_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if os.path.exists(target_path):
         return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
     # 2. Fallback to repository static/uploads directory
     default_dir = os.path.join(app.root_path, 'static', 'uploads')
-    if os.path.exists(os.path.join(default_dir, filename)):
+    repo_file = os.path.join(default_dir, filename)
+    if os.path.exists(repo_file):
         return send_from_directory(default_dir, filename)
+
+    # 3. Fallback to Database BLOB (Immune to cold-start disk wipes & serverless worker isolation)
+    cert = Certificate.query.filter_by(file_path=filename).first()
+    if cert and cert.file_data:
+        try:
+            os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+            with open(target_path, 'wb') as f:
+                f.write(cert.file_data)
+        except Exception:
+            pass
+
+        mimetype, _ = mimetypes.guess_type(filename)
+        if not mimetype:
+            mimetype = 'application/pdf' if cert.file_type == 'pdf' else 'image/jpeg'
+        return send_file(
+            io.BytesIO(cert.file_data),
+            mimetype=mimetype,
+            as_attachment=False,
+            download_name=filename
+        )
+
     abort(404)
+
 
 
 # ==========================================
@@ -287,10 +336,12 @@ def download_student_portfolio_pdf(student_id):
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('student_dashboard' if current_user.is_student else 'admin_dashboard'))
-
     if request.method == 'POST':
+        # If user is already authenticated, log them out first to cleanly register and create a new account
+        if current_user.is_authenticated:
+            logout_user()
+            session.clear()
+
         name = request.form.get('name', '').strip()
         email = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
@@ -336,17 +387,22 @@ def register():
         flash(f'Account created successfully as {role.capitalize()}! You can now log in.', 'success')
         return redirect(url_for('login'))
 
+    # GET request
+    if request.args.get('switch') == '1' and current_user.is_authenticated:
+        logout_user()
+        session.clear()
+
     return render_template('auth/register.html')
 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if current_user.is_authenticated:
-        if current_user.is_student:
-            return redirect(url_for('student_dashboard'))
-        return redirect(url_for('admin_dashboard'))
-
     if request.method == 'POST':
+        # Cleanly switch accounts if another user is currently logged in
+        if current_user.is_authenticated:
+            logout_user()
+            session.clear()
+
         email = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
         remember = bool(request.form.get('remember'))
@@ -368,15 +424,27 @@ def login():
             return redirect(url_for('student_dashboard'))
         return redirect(url_for('admin_dashboard'))
 
+    # GET request
+    if request.args.get('switch') == '1' and current_user.is_authenticated:
+        logout_user()
+        session.clear()
+        flash('Switched out of current session. Please choose an account to log in.', 'info')
+
     return render_template('auth/login.html')
 
 
 @app.route('/logout')
-@login_required
 def logout():
-    logout_user()
+    if current_user.is_authenticated:
+        logout_user()
+    session.clear()
     flash('You have been logged out successfully.', 'info')
-    return redirect(url_for('index'))
+    resp = redirect(url_for('login'))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
+
 
 
 @app.route('/profile', methods=['GET', 'POST'])
@@ -476,8 +544,18 @@ def upload_certificate():
         file_type = 'pdf' if ext == 'pdf' else 'image'
         safe_base = secure_filename(file.filename.rsplit('.', 1)[0])[:30]
         unique_filename = f"{uuid.uuid4().hex[:10]}_{safe_base}.{ext}"
-        save_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-        file.save(save_path)
+        
+        # Read file bytes for persistent database storage (resilient to cold-start disk wipes)
+        file_bytes = file.read()
+
+        # Cache on disk if writable
+        try:
+            os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+            save_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+            with open(save_path, 'wb') as f:
+                f.write(file_bytes)
+        except Exception as disk_err:
+            print(f"Disk cache notice: {disk_err}")
 
         new_cert = Certificate(
             student_id=current_user.id,
@@ -489,6 +567,7 @@ def upload_certificate():
             credential_url=credential_url,
             file_path=unique_filename,
             file_type=file_type,
+            file_data=file_bytes,
             description=description,
             status='Pending'
         )
@@ -560,15 +639,24 @@ def edit_certificate(cert_id):
             file_type = 'pdf' if ext == 'pdf' else 'image'
             safe_base = secure_filename(file.filename.rsplit('.', 1)[0])[:30]
             unique_filename = f"{uuid.uuid4().hex[:10]}_{safe_base}.{ext}"
-            save_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-            file.save(save_path)
+            file_bytes = file.read()
+
+            try:
+                os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+                save_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+                with open(save_path, 'wb') as f:
+                    f.write(file_bytes)
+            except Exception as disk_err:
+                print(f"Disk cache notice: {disk_err}")
 
             cert.file_path = unique_filename
             cert.file_type = file_type
+            cert.file_data = file_bytes
 
         db.session.commit()
         flash('Certificate updated successfully and resubmitted for verification!', 'success')
         return redirect(url_for('student_dashboard'))
+
 
     return render_template('student/edit.html', cert=cert)
 
@@ -840,7 +928,19 @@ def mark_notification_read(notif_id):
     return jsonify({'success': True})
 
 
+@app.after_request
+def add_cache_headers(response):
+    # Prevent browser caching on authenticated portals and auth routes
+    # to avoid cross-account data leakage or stale session views
+    if current_user.is_authenticated or request.path.startswith(('/dashboard', '/admin', '/certificate', '/profile', '/login', '/register')):
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    return response
+
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     app.run(debug=True, port=5000)
+
