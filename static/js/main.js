@@ -86,6 +86,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const fillAdminBtn = document.getElementById('fillAdminLogin');
     const fillFacultyBtn = document.getElementById('fillFacultyLogin');
     const fillStudentBtn = document.getElementById('fillStudentLogin');
+    const fillStudent2Btn = document.getElementById('fillStudent2Login');
     const emailInput = document.getElementById('loginEmail');
     const passwordInput = document.getElementById('loginPassword');
 
@@ -107,6 +108,13 @@ document.addEventListener('DOMContentLoaded', function () {
             passwordInput.value = 'Student@123';
         });
     }
+    if (fillStudent2Btn && emailInput && passwordInput) {
+        fillStudent2Btn.addEventListener('click', () => {
+            emailInput.value = 'priya@student.edu';
+            passwordInput.value = 'Student@123';
+        });
+    }
+
 
     // 4. Mark all notifications as read
     const markAllReadBtn = document.getElementById('markAllNotificationsRead');

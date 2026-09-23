@@ -175,11 +175,17 @@
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
+                                    <a class="dropdown-item py-2 text-primary" href="{{ url_for('login', switch=1) }}">
+                                        <i class="bi bi-arrow-repeat me-2"></i> Switch Account
+                                    </a>
+                                </li>
+                                <li>
                                     <a class="dropdown-item py-2 text-danger" href="{{ url_for('logout') }}">
                                         <i class="bi bi-box-arrow-right me-2"></i> Sign Out
                                     </a>
                                 </li>
                             </ul>
+
                         </div>
                     {% else %}
                         <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm px-3 rounded-pill">
