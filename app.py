@@ -30,7 +30,15 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'celestial-super-secret-
 
 IS_VERCEL = os.environ.get('VERCEL') == '1' or 'VERCEL' in os.environ
 
-database_url = os.environ.get('DATABASE_URL')
+# Detect database configuration (supports Neon, Supabase, Vercel Postgres, Railway, etc.)
+database_url = (
+    os.environ.get('DATABASE_URL') or 
+    os.environ.get('POSTGRES_URL') or 
+    os.environ.get('POSTGRES_URL_NON_POOLING') or
+    os.environ.get('POSTGRES_PRISMA_URL') or
+    os.environ.get('SUPABASE_DB_URL')
+)
+
 if database_url:
     if database_url.startswith('postgres://'):
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
@@ -72,8 +80,9 @@ with app.app_context():
             inspector = inspect(db.engine)
             cols = [col['name'] for col in inspector.get_columns('certificates')]
             if 'file_data' not in cols:
+                col_type = "BYTEA" if db.engine.dialect.name == "postgresql" else "BLOB"
                 with db.engine.connect() as conn:
-                    conn.execute(text("ALTER TABLE certificates ADD COLUMN file_data BLOB;"))
+                    conn.execute(text(f"ALTER TABLE certificates ADD COLUMN file_data {col_type};"))
                     conn.commit()
         except Exception as mig_err:
             print(f"Auto-migration check notice: {mig_err}")
