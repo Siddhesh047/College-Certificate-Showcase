@@ -73,8 +73,9 @@
                         <div class="border border-2 border-dashed rounded-3 p-4 text-center bg-light">
                             <i class="bi bi-file-earmark-arrow-up text-primary display-6 mb-2"></i>
                             <div class="fw-semibold text-dark">Choose certificate file to upload</div>
-                            <div class="small text-muted mb-3">Supported formats: PDF, PNG, JPG, JPEG, WEBP (Max 16 MB)</div>
-                            <input type="file" name="file" id="certFileInput" class="form-control w-75 mx-auto" accept=".pdf,.png,.jpg,.jpeg,.webp" required>
+                            <div class="small text-muted mb-2">Supported formats: PDF, PNG, JPG, JPEG, WEBP (Max 4 MB &bull; Photos auto-compressed)</div>
+                            <input type="file" name="file" id="certFileInput" class="form-control w-75 mx-auto cert-file-input" accept=".pdf,.png,.jpg,.jpeg,.webp" required>
+                            <div class="file-upload-feedback mt-2 small text-center"></div>
                         </div>
                     </div>
 

@@ -256,6 +256,30 @@ class CelestialAppTestCase(unittest.TestCase):
         self.assertIn(b'Page or Record Not Found', res.data)
         self.assertIn(b'Browse Showcase', res.data)
 
+    def test_payload_too_large_413(self):
+        """Test that uploads exceeding 4 MB trigger the styled 413 error page."""
+        self.client.post('/login', data={
+            'email': 'aarav@student.edu',
+            'password': 'Student@123'
+        })
+        with app.app_context():
+            cat = Category.query.first()
+            cat_id = cat.id
+
+        # 4.5 MB payload
+        oversized_data = b'0' * (int(4.5 * 1024 * 1024))
+        fake_file = (io.BytesIO(oversized_data), 'huge_cert.pdf')
+        res = self.client.post('/certificate/upload', data={
+            'title': 'Oversized Certificate',
+            'category_id': cat_id,
+            'issuing_org': 'Size Tester',
+            'issue_date': '2026-03-15',
+            'file': fake_file
+        })
+        self.assertEqual(res.status_code, 413)
+        self.assertIn(b'File Size Too Large', res.data)
+        self.assertIn(b'413', res.data)
+
 if __name__ == '__main__':
     unittest.main()
 

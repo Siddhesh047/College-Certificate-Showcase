@@ -158,4 +158,121 @@ document.addEventListener('DOMContentLoaded', function () {
             bsAlert.close();
         });
     }, 6000);
+
+    // 7. Client-side File Upload Optimization & Vercel Payload Protection (4 MB Limit)
+    const MAX_ALLOWED_BYTES = 4.0 * 1024 * 1024; // 4.0 MB safe threshold for Vercel 4.5 MB limit
+
+    function compressImageFile(file, maxWidth = 1920, maxHeight = 1920, quality = 0.85) {
+        return new Promise((resolve) => {
+            if (!file.type.startsWith('image/') || file.size <= 800 * 1024) {
+                // No compression needed if already under 800 KB
+                resolve(file);
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = function (e) {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = function () {
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > maxWidth || height > maxHeight) {
+                        if (width > height) {
+                            height = Math.round((height * maxWidth) / width);
+                            width = maxWidth;
+                        } else {
+                            width = Math.round((width * maxHeight) / height);
+                            height = maxHeight;
+                        }
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob(function (blob) {
+                        if (!blob || blob.size >= file.size) {
+                            resolve(file);
+                        } else {
+                            const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
+                                type: 'image/jpeg',
+                                lastModified: Date.now()
+                            });
+                            resolve(compressedFile);
+                        }
+                    }, 'image/jpeg', quality);
+                };
+                img.onerror = () => resolve(file);
+            };
+            reader.onerror = () => resolve(file);
+        });
+    }
+
+    const uploadInputs = document.querySelectorAll('#certFileInput, #certEditFileInput, .cert-file-input');
+    uploadInputs.forEach(input => {
+        input.addEventListener('change', async function () {
+            const file = this.files[0];
+            if (!file) return;
+
+            let feedback = this.parentElement.querySelector('.file-upload-feedback');
+            if (!feedback) {
+                feedback = document.createElement('div');
+                feedback.className = 'file-upload-feedback mt-2 small text-center';
+                this.parentElement.appendChild(feedback);
+            }
+
+            const submitBtn = this.form ? this.form.querySelector('button[type="submit"]') : null;
+
+            // Handle images: auto-compress high-resolution smartphone / scanner photos
+            if (file.type.startsWith('image/')) {
+                if (file.size > 800 * 1024) {
+                    const originalMB = (file.size / (1024 * 1024)).toFixed(2);
+                    feedback.innerHTML = `<span class="text-primary"><i class="bi bi-arrow-repeat spin me-1"></i> Optimizing photo (${originalMB} MB) for fast upload...</span>`;
+                    if (submitBtn) submitBtn.disabled = true;
+
+                    try {
+                        const optimized = await compressImageFile(file);
+                        if (optimized && optimized !== file) {
+                            const dt = new DataTransfer();
+                            dt.items.add(optimized);
+                            this.files = dt.files;
+                            const newKB = (optimized.size / 1024).toFixed(0);
+                            feedback.innerHTML = `<span class="text-success fw-semibold"><i class="bi bi-check-circle-fill me-1"></i> Photo optimized: ${originalMB} MB &rarr; ${newKB} KB (Ready to submit)</span>`;
+                        } else {
+                            feedback.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i> Ready: ${file.name}</span>`;
+                        }
+                    } catch (err) {
+                        console.error('Image compression error:', err);
+                        feedback.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i> Selected: ${file.name}</span>`;
+                    } finally {
+                        if (submitBtn) submitBtn.disabled = false;
+                    }
+                } else {
+                    const sizeKB = (file.size / 1024).toFixed(0);
+                    feedback.innerHTML = `<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i> Ready: ${file.name} (${sizeKB} KB)</span>`;
+                    if (submitBtn) submitBtn.disabled = false;
+                }
+            } 
+            // Handle PDFs
+            else {
+                if (file.size > MAX_ALLOWED_BYTES) {
+                    const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                    this.value = ''; // Prevent upload of oversized file
+                    feedback.innerHTML = `<div class="alert alert-danger py-2 px-3 mb-0 text-start mt-2">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                        <strong>PDF is too large (${sizeMB} MB):</strong> Vercel serverless has a 4.0 MB limit. Please <a href="https://www.ilovepdf.com/compress_pdf" target="_blank" class="alert-link">compress your PDF</a> or upload an image/screenshot of your certificate.
+                    </div>`;
+                } else {
+                    const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                    feedback.innerHTML = `<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i> Ready: ${file.name} (${sizeMB} MB)</span>`;
+                    if (submitBtn) submitBtn.disabled = false;
+                }
+            }
+        });
+    });
 });

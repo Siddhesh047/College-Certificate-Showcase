@@ -60,7 +60,7 @@ else:
     UPLOAD_FOLDER = os.path.join(app.root_path, 'static', 'uploads')
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max limit
+app.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024  # 4 MB max limit (Vercel Serverless Function payload limit is 4.5 MB)
 ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg', 'webp'}
 
 try:
@@ -997,6 +997,14 @@ def method_not_allowed(e):
                            error_code=405,
                            error_title='Action Not Allowed',
                            error_message='This request method is not supported for this URL. Please use the application buttons and forms.'), 405
+
+
+@app.errorhandler(413)
+def request_entity_too_large(e):
+    return render_template('errors/error.html',
+                           error_code=413,
+                           error_title='File Size Too Large',
+                           error_message='The uploaded file exceeds the 4 MB platform upload limit. Please compress your PDF or upload an image version of your certificate.'), 413
 
 
 @app.errorhandler(500)
