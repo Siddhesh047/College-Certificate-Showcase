@@ -30,3 +30,9 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
+
+# User uploads (preserve sample files)
+static/uploads/*
+!static/uploads/sample_hackathon_award.pdf
+!static/uploads/sample_certificate_badge.png
+

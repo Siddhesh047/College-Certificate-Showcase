@@ -424,7 +424,7 @@ def login():
         flash(f'Welcome back, {user.name}!', 'success')
 
         next_page = request.args.get('next')
-        if next_page and next_page.startswith('/'):
+        if next_page and next_page.startswith('/') and '/delete' not in next_page:
             return redirect(next_page)
         
         if user.is_student:
@@ -591,11 +591,15 @@ def upload_certificate():
 @login_required
 @student_required
 def edit_certificate(cert_id):
-    cert = Certificate.query.get_or_404(cert_id)
+    cert = db.session.get(Certificate, cert_id)
+    if not cert:
+        flash('The requested submission was not found or has already been deleted.', 'warning')
+        return redirect(url_for('student_dashboard'))
 
     # Security check: must belong to current student
     if cert.student_id != current_user.id:
-        abort(403)
+        flash('Access denied: You can only modify your own submissions.', 'danger')
+        return redirect(url_for('student_dashboard'))
 
     # Can only edit if status is Pending (or if Rejected and re-submitting)
     if cert.status == 'Approved':
@@ -668,14 +672,22 @@ def edit_certificate(cert_id):
     return render_template('student/edit.html', cert=cert)
 
 
-@app.route('/certificate/<int:cert_id>/delete', methods=['POST'])
+@app.route('/certificate/<int:cert_id>/delete', methods=['GET', 'POST'])
 @login_required
 @student_required
 def delete_certificate(cert_id):
-    cert = Certificate.query.get_or_404(cert_id)
+    if request.method == 'GET':
+        # Safely handle direct URL visits, browser back buttons, or post-login redirects
+        return redirect(url_for('student_dashboard'))
+
+    cert = db.session.get(Certificate, cert_id)
+    if not cert:
+        flash('The certificate submission was not found or has already been deleted.', 'warning')
+        return redirect(url_for('student_dashboard'))
 
     if cert.student_id != current_user.id:
-        abort(403)
+        flash('Access denied: You do not have permission to delete this certificate.', 'danger')
+        return redirect(url_for('student_dashboard'))
 
     if cert.status == 'Approved':
         flash('Approved certificates cannot be deleted directly.', 'warning')
@@ -683,7 +695,7 @@ def delete_certificate(cert_id):
 
     db.session.delete(cert)
     db.session.commit()
-    flash('Certificate submission deleted.', 'info')
+    flash('Certificate submission deleted successfully.', 'info')
     return redirect(url_for('student_dashboard'))
 
 
@@ -741,7 +753,11 @@ def admin_dashboard():
 @login_required
 @faculty_required
 def verify_certificate(cert_id):
-    cert = Certificate.query.get_or_404(cert_id)
+    cert = db.session.get(Certificate, cert_id)
+    if not cert:
+        flash('The submission to verify was not found or has already been removed.', 'warning')
+        return redirect(url_for('admin_dashboard'))
+
     action = request.form.get('action')  # 'approve' or 'reject'
     remarks = request.form.get('remarks', '').strip()
 
@@ -944,6 +960,43 @@ def add_cache_headers(response):
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
     return response
+
+
+# ==========================================
+# CUSTOM ERROR HANDLERS
+# ==========================================
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('errors/error.html',
+                           error_code=404,
+                           error_title='Page or Record Not Found',
+                           error_message='The requested page, portfolio, or certificate record could not be found. It may have been removed, already deleted, or the session was refreshed.'), 404
+
+
+@app.errorhandler(403)
+def forbidden_access(e):
+    return render_template('errors/error.html',
+                           error_code=403,
+                           error_title='Access Restricted',
+                           error_message='You do not have the required permissions to view or perform operations on this resource.'), 403
+
+
+@app.errorhandler(405)
+def method_not_allowed(e):
+    return render_template('errors/error.html',
+                           error_code=405,
+                           error_title='Action Not Allowed',
+                           error_message='This request method is not supported for this URL. Please use the application buttons and forms.'), 405
+
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    db.session.rollback()
+    return render_template('errors/error.html',
+                           error_code=500,
+                           error_title='Server Encountered An Issue',
+                           error_message='An unexpected error occurred while processing your request. Please try again or return to your dashboard.'), 500
 
 
 if __name__ == '__main__':

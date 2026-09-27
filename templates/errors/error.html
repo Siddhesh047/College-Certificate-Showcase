@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ error_code }} - {{ error_title }}{% endblock %}
+
+{% block content %}
+<div class="container py-5 my-md-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-7 col-md-9 text-center">
+            <div class="card-custom p-5 bg-white shadow-sm border-0">
+                <div class="mb-4">
+                    {% if error_code == 404 %}
+                    <div class="display-1 fw-bold text-primary mb-2">404</div>
+                    <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex p-3 text-primary mb-3">
+                        <i class="bi bi-search display-5"></i>
+                    </div>
+                    {% elif error_code == 403 %}
+                    <div class="display-1 fw-bold text-danger mb-2">403</div>
+                    <div class="rounded-circle bg-danger bg-opacity-10 d-inline-flex p-3 text-danger mb-3">
+                        <i class="bi bi-shield-lock display-5"></i>
+                    </div>
+                    {% elif error_code == 405 %}
+                    <div class="display-1 fw-bold text-warning mb-2">405</div>
+                    <div class="rounded-circle bg-warning bg-opacity-10 d-inline-flex p-3 text-warning mb-3">
+                        <i class="bi bi-sign-stop display-5"></i>
+                    </div>
+                    {% else %}
+                    <div class="display-1 fw-bold text-secondary mb-2">{{ error_code }}</div>
+                    <div class="rounded-circle bg-secondary bg-opacity-10 d-inline-flex p-3 text-secondary mb-3">
+                        <i class="bi bi-exclamation-triangle display-5"></i>
+                    </div>
+                    {% endif %}
+                    
+                    <h2 class="fw-bold text-dark mb-2">{{ error_title }}</h2>
+                    <p class="text-muted mb-4 lead fs-6">
+                        {{ error_message }}
+                    </p>
+                </div>
+
+                <div class="d-flex flex-wrap justify-content-center gap-3">
+                    <button onclick="window.history.length > 1 ? window.history.back() : window.location.href='/'" class="btn btn-outline-secondary rounded-pill px-4">
+                        <i class="bi bi-arrow-left me-1"></i> Go Back
+                    </button>
+                    
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.is_student %}
+                        <a href="{{ url_for('student_dashboard') }}" class="btn btn-primary rounded-pill px-4 shadow-sm fw-semibold">
+                            <i class="bi bi-speedometer2 me-1"></i> My Dashboard
+                        </a>
+                        {% elif current_user.is_faculty %}
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary rounded-pill px-4 shadow-sm fw-semibold">
+                            <i class="bi bi-speedometer2 me-1"></i> Verification Dashboard
+                        </a>
+                        {% endif %}
+                    {% else %}
+                        <a href="{{ url_for('index') }}" class="btn btn-primary rounded-pill px-4 shadow-sm fw-semibold">
+                            <i class="bi bi-house-door me-1"></i> Back to Home
+                        </a>
+                    {% endif %}
+                    
+                    <a href="{{ url_for('showcase') }}" class="btn btn-light rounded-pill px-4 border">
+                        <i class="bi bi-trophy me-1"></i> Browse Showcase
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -193,6 +193,69 @@ class CelestialAppTestCase(unittest.TestCase):
         self.assertEqual(dash.status_code, 200)
         self.assertIn('no-store', dash.headers.get('Cache-Control', ''))
 
+    def test_delete_certificate_robustness(self):
+        """Test that delete endpoint gracefully handles GET, missing records, and deletion without 404."""
+        # 1. Login as student Aarav
+        self.client.post('/login', data={
+            'email': 'aarav@student.edu',
+            'password': 'Student@123'
+        })
+
+        # 2. GET on delete endpoint should safely redirect to dashboard instead of 405 or 404
+        get_res = self.client.get('/certificate/16/delete', follow_redirects=True)
+        self.assertEqual(get_res.status_code, 200)
+        self.assertIn(b'My Achievement Portfolio Record', get_res.data)
+
+        # 3. POST on non-existent certificate should gracefully flash and redirect instead of 404
+        post_missing = self.client.post('/certificate/99999/delete', follow_redirects=True)
+        self.assertEqual(post_missing.status_code, 200)
+        self.assertIn(b'not found or has already been deleted', post_missing.data)
+
+        # 4. Upload and delete a real pending certificate
+        with app.app_context():
+            cat = Category.query.first()
+            cat_id = cat.id
+
+        fake_pdf = (io.BytesIO(b'%PDF-1.4 sample'), 'test_delete.pdf')
+        self.client.post('/certificate/upload', data={
+            'title': 'Certificate To Delete',
+            'category_id': cat_id,
+            'issuing_org': 'Delete Tester',
+            'issue_date': '2026-03-15',
+            'file': fake_pdf
+        })
+
+        with app.app_context():
+            cert_to_del = Certificate.query.filter_by(title='Certificate To Delete').first()
+            self.assertIsNotNone(cert_to_del)
+            del_id = cert_to_del.id
+
+        del_res = self.client.post(f'/certificate/{del_id}/delete', follow_redirects=True)
+        self.assertEqual(del_res.status_code, 200)
+        self.assertIn(b'deleted successfully', del_res.data)
+
+        # Double delete check (simulating user double-clicking or refreshing): should not 404!
+        del_again = self.client.post(f'/certificate/{del_id}/delete', follow_redirects=True)
+        self.assertEqual(del_again.status_code, 200)
+        self.assertIn(b'not found or has already been deleted', del_again.data)
+
+    def test_login_next_parameter_delete_sanitization(self):
+        """Test that login next_page ignores /delete endpoints to prevent accidental GET delete triggers."""
+        res = self.client.post('/login?next=%2Fcertificate%2F16%2Fdelete', data={
+            'email': 'aarav@student.edu',
+            'password': 'Student@123'
+        })
+        # Should redirect to /dashboard, not to /certificate/16/delete
+        self.assertEqual(res.status_code, 302)
+        self.assertEqual(res.location, '/dashboard')
+
+    def test_custom_error_pages(self):
+        """Test that custom styled error pages render for 404."""
+        res = self.client.get('/definitely-nonexistent-path-12345')
+        self.assertEqual(res.status_code, 404)
+        self.assertIn(b'Page or Record Not Found', res.data)
+        self.assertIn(b'Browse Showcase', res.data)
+
 if __name__ == '__main__':
     unittest.main()
 
