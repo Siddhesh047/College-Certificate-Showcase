@@ -146,11 +146,15 @@ def inject_global_vars():
         recent_notifications = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.created_at.desc()).limit(5).all()
     
     categories = Category.query.all() if Category.query.count() > 0 else []
+    db_engine = db.engine.dialect.name
+    is_ephemeral_vercel = IS_VERCEL and (db_engine == 'sqlite')
     return dict(
         unread_count=unread_count,
         recent_notifications=recent_notifications,
         global_categories=categories,
         all_departments=DEPARTMENTS,
+        db_engine=db_engine,
+        is_ephemeral_vercel=is_ephemeral_vercel,
         now=datetime.now(timezone.utc)
     )
 

@@ -30,6 +30,20 @@
         </div>
     </div>
 
+    <!-- Temporary Storage Notice on Vercel -->
+    {% if is_ephemeral_vercel %}
+    <div class="alert alert-warning border-0 shadow-sm d-flex flex-column flex-md-row align-items-md-center justify-content-between p-3 mb-4 rounded-3">
+        <div class="d-flex align-items-center gap-3">
+            <i class="bi bi-info-circle-fill text-warning fs-4"></i>
+            <div>
+                <strong class="text-dark">Demo / Temporary Storage Mode:</strong>
+                <span class="text-muted small">This deployment is running on serverless temporary storage. Connect PostgreSQL in Vercel Storage to preserve all accounts and uploads permanently.</span>
+            </div>
+        </div>
+        <span class="badge bg-warning text-dark px-3 py-2 rounded-pill mt-2 mt-md-0 align-self-start align-self-md-center">Demo Mode</span>
+    </div>
+    {% endif %}
+
     <!-- Metrics Cards -->
     <div class="row g-3 mb-4">
         <div class="col-lg-3 col-sm-6">

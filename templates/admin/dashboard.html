@@ -27,6 +27,39 @@
         </div>
     </div>
 
+    <!-- Database Storage Engine Status Banner -->
+    {% if is_ephemeral_vercel %}
+    <div class="alert alert-warning border-0 shadow-sm d-flex flex-column flex-md-row align-items-md-center justify-content-between p-3 mb-4 rounded-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="bg-warning bg-opacity-25 rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                <i class="bi bi-database-exclamation text-dark fs-5"></i>
+            </div>
+            <div>
+                <strong class="text-dark">Running on Temporary SQLite Storage (Vercel Serverless)</strong>
+                <div class="small text-muted">User accounts and uploaded files will reset when serverless containers idle. To make all data permanent, open your Vercel Dashboard &rarr; <strong>Storage</strong> &rarr; <strong>Create Database (Neon Postgres)</strong>.</div>
+            </div>
+        </div>
+        <span class="badge bg-warning text-dark px-3 py-2 rounded-pill mt-2 mt-md-0 align-self-start align-self-md-center">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i> Temporary Storage
+        </span>
+    </div>
+    {% else %}
+    <div class="alert alert-success border-0 shadow-sm d-flex flex-column flex-md-row align-items-md-center justify-content-between p-3 mb-4 rounded-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="bg-success bg-opacity-10 rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                <i class="bi bi-database-check text-success fs-5"></i>
+            </div>
+            <div>
+                <strong class="text-dark">Permanent Cloud Database Active ({{ db_engine|capitalize }})</strong>
+                <div class="small text-muted">All registered student accounts, faculty remarks, and uploaded documents are permanently preserved.</div>
+            </div>
+        </div>
+        <span class="badge bg-success px-3 py-2 rounded-pill mt-2 mt-md-0 align-self-start align-self-md-center">
+            <i class="bi bi-check-circle-fill me-1"></i> Permanent Storage
+        </span>
+    </div>
+    {% endif %}
+
     <!-- Metric Counters -->
     <div class="row g-3 mb-4">
         <div class="col-lg-3 col-sm-6">
